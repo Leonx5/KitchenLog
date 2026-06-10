@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
-import { getIngredients } from '@/utils/database';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { getIngredients, addIngredient } from '@/utils/database';
 
 export default function IngredientsScreen() {
   const [ingredients, setIngredients] = useState<any[]>([]);
@@ -16,7 +16,20 @@ export default function IngredientsScreen() {
       console.error('INGREDIENTS ERROR:', error);
     }
   }, []);
+  const handleAddIngredient = () => {
+  addIngredient(
+    'Test Ingredient',
+    'Test',
+    'kg',
+    100
+  );
 
+  const data = getIngredients();
+
+console.log('AFTER INSERT:', data);
+
+setIngredients(Array.isArray(data) ? data : []);
+};
   return (
     <ScrollView
       style={{
@@ -34,7 +47,25 @@ export default function IngredientsScreen() {
       >
         Ingredients
       </Text>
-
+      <TouchableOpacity
+  onPress={handleAddIngredient}
+  style={{
+    backgroundColor: '#2563EB',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+  }}
+>
+  <Text
+    style={{
+      color: '#fff',
+      textAlign: 'center',
+      fontWeight: 'bold',
+    }}
+  >
+    + Add Test Ingredient
+  </Text>
+</TouchableOpacity>
       {ingredients.map((item) => (
         <View
           key={item.id}
