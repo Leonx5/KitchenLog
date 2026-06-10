@@ -78,5 +78,3 @@ export function seedIngredients() {
   addIngredient('Olive Oil', 'Pantry', 'litres', 1200);
   addIngredient('Onions', 'Vegetables', 'kg', 120);
 }
-
-console.log('INGREDIENTS TEST:', getIngredients());
