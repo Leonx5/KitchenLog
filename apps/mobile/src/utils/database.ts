@@ -78,3 +78,10 @@ export function seedIngredients() {
   addIngredient('Olive Oil', 'Pantry', 'litres', 1200);
   addIngredient('Onions', 'Vegetables', 'kg', 120);
 }
+export function deleteIngredient(id: number) {
+  db.runSync(
+    `DELETE FROM ingredients
+     WHERE id = ?`,
+    [id]
+  );
+}

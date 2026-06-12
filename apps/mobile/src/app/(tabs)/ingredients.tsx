@@ -1,88 +1,106 @@
-﻿import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { getIngredients, addIngredient } from '@/utils/database';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  addIngredient,
+  deleteIngredient,
+  getIngredients,
+} from '@/utils/database';
+
+type Ingredient = {
+  id: number;
+  name: string;
+  category: string | null;
+  unit: string | null;
+  cost_per_unit: number;
+};
 
 export default function IngredientsScreen() {
-  const [ingredients, setIngredients] = useState<any[]>([]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
 
-  useEffect(() => {
+  const refreshIngredients = useCallback(() => {
     try {
       const data = getIngredients();
-
-      console.log('INGREDIENTS SCREEN DATA:', data);
-
-      setIngredients(Array.isArray(data) ? data : []);
+      setIngredients(Array.isArray(data) ? (data as Ingredient[]) : []);
     } catch (error) {
       console.error('INGREDIENTS ERROR:', error);
+      setIngredients([]);
     }
   }, []);
+
+  useEffect(() => {
+    refreshIngredients();
+  }, [refreshIngredients]);
+
   const handleAddIngredient = () => {
-  addIngredient(
-    'Test Ingredient',
-    'Test',
-    'kg',
-    100
-  );
+    addIngredient('Test Ingredient', 'Test', 'kg', 100);
+    refreshIngredients();
+  };
 
-  const data = getIngredients();
+  const handleDeleteIngredient = (id: number) => {
+    deleteIngredient(id);
+    refreshIngredients();
+  };
 
-console.log('AFTER INSERT:', data);
-
-setIngredients(Array.isArray(data) ? data : []);
-};
   return (
-    <ScrollView
-      style={{
-        flex: 1,
-        backgroundColor: '#fff',
-        padding: 20,
-      }}
-    >
-      <Text
-        style={{
-          fontSize: 24,
-          fontWeight: 'bold',
-          marginBottom: 20,
-        }}
-      >
-        Ingredients
-      </Text>
-      <TouchableOpacity
-  onPress={handleAddIngredient}
-  style={{
-    backgroundColor: '#2563EB',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
-  }}
->
-  <Text
-    style={{
-      color: '#fff',
-      textAlign: 'center',
-      fontWeight: 'bold',
-    }}
-  >
-    + Add Test Ingredient
-  </Text>
-</TouchableOpacity>
+    <ScrollView style={styles.container}>
+      <Text style={styles.title}>Ingredients</Text>
+
+      <TouchableOpacity style={styles.addButton} onPress={handleAddIngredient}>
+        <Text style={styles.buttonText}>+ Add Test Ingredient</Text>
+      </TouchableOpacity>
+
       {ingredients.map((item) => (
-        <View
-          key={item.id}
-          style={{
-            padding: 12,
-            marginBottom: 12,
-            borderWidth: 1,
-            borderColor: '#ddd',
-            borderRadius: 8,
-          }}
-        >
+        <View key={item.id} style={styles.ingredientCard}>
           <Text>{item.name}</Text>
           <Text>{item.category}</Text>
           <Text>{item.unit}</Text>
           <Text>KSh {item.cost_per_unit}</Text>
+
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => handleDeleteIngredient(item.id)}
+          >
+            <Text style={styles.buttonText}>Delete</Text>
+          </TouchableOpacity>
         </View>
       ))}
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  addButton: {
+    backgroundColor: '#2563EB',
+    borderRadius: 8,
+    marginBottom: 20,
+    padding: 12,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  container: {
+    backgroundColor: '#fff',
+    flex: 1,
+    padding: 20,
+  },
+  deleteButton: {
+    backgroundColor: '#DC2626',
+    borderRadius: 6,
+    marginTop: 10,
+    padding: 8,
+  },
+  ingredientCard: {
+    borderColor: '#ddd',
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 12,
+    padding: 12,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+});
