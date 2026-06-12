@@ -1,6 +1,18 @@
-﻿import * as SQLite from 'expo-sqlite';
+import * as SQLite from 'expo-sqlite';
 
 export const db = SQLite.openDatabaseSync('prepflow.db');
+
+export type Ingredient = {
+  id: number;
+  name: string;
+  category: string | null;
+  unit: string | null;
+  cost_per_unit: number;
+};
+
+type CountRow = {
+  count: number;
+};
 
 export function initializeDatabase() {
   db.execSync(`
@@ -45,10 +57,13 @@ export function initializeDatabase() {
     );
   `);
 }
+
 export function getIngredients() {
-  return db.getAllSync(
-    `SELECT * FROM ingredients ORDER BY name`
-  );
+  return db.getAllSync<Ingredient>(`
+    SELECT *
+    FROM ingredients
+    ORDER BY name
+  `);
 }
 
 export function addIngredient(
@@ -64,12 +79,14 @@ export function addIngredient(
     [name, category, unit, costPerUnit]
   );
 }
-export function seedIngredients() {
-  const existing = db.getFirstSync(
-    `SELECT COUNT(*) as count FROM ingredients`
-  ) as any;
 
-  if (existing?.count > 0) {
+export function seedIngredients() {
+  const existing = db.getFirstSync<CountRow>(`
+    SELECT COUNT(*) as count
+    FROM ingredients
+  `);
+
+  if ((existing?.count ?? 0) > 0) {
     return;
   }
 
@@ -78,10 +95,20 @@ export function seedIngredients() {
   addIngredient('Olive Oil', 'Pantry', 'litres', 1200);
   addIngredient('Onions', 'Vegetables', 'kg', 120);
 }
+
 export function deleteIngredient(id: number) {
   db.runSync(
     `DELETE FROM ingredients
      WHERE id = ?`,
     [id]
+  );
+}
+
+export function updateIngredient(id: number, name: string) {
+  db.runSync(
+    `UPDATE ingredients
+     SET name = ?
+     WHERE id = ?`,
+    [name, id]
   );
 }
