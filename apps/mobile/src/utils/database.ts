@@ -104,11 +104,20 @@ export function deleteIngredient(id: number) {
   );
 }
 
-export function updateIngredient(id: number, name: string) {
+export function updateIngredient(
+  id: number,
+  name: string,
+  category?: string,
+  unit?: string,
+  costPerUnit?: number
+) {
   db.runSync(
     `UPDATE ingredients
-     SET name = ?
+     SET name = ?,
+         category = COALESCE(?, category),
+         unit = COALESCE(?, unit),
+         cost_per_unit = COALESCE(?, cost_per_unit)
      WHERE id = ?`,
-    [name, id]
+    [name, category ?? null, unit ?? null, costPerUnit ?? null, id]
   );
 }

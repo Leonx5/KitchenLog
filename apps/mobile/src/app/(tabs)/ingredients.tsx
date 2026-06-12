@@ -1,9 +1,16 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import {
   addIngredient,
   deleteIngredient,
   getIngredients,
+  updateIngredient,
 } from '@/utils/database';
 
 type Ingredient = {
@@ -17,90 +24,127 @@ type Ingredient = {
 export default function IngredientsScreen() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
 
-  const refreshIngredients = useCallback(() => {
-    try {
-      const data = getIngredients();
-      setIngredients(Array.isArray(data) ? (data as Ingredient[]) : []);
-    } catch (error) {
-      console.error('INGREDIENTS ERROR:', error);
-      setIngredients([]);
-    }
-  }, []);
+  const loadIngredients = () => {
+    const data = getIngredients();
+    setIngredients(Array.isArray(data) ? data : []);
+  };
 
   useEffect(() => {
-    refreshIngredients();
-  }, [refreshIngredients]);
+    loadIngredients();
+  }, []);
 
   const handleAddIngredient = () => {
     addIngredient('Test Ingredient', 'Test', 'kg', 100);
-    refreshIngredients();
+    loadIngredients();
   };
 
   const handleDeleteIngredient = (id: number) => {
     deleteIngredient(id);
-    refreshIngredients();
+    loadIngredients();
+  };
+
+  const handleEditIngredient = (id: number) => {
+    updateIngredient(id, 'Edited Ingredient');
+    loadIngredients();
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Ingredients</Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View>
+        <Text style={styles.title}>Ingredients</Text>
 
-      <TouchableOpacity style={styles.addButton} onPress={handleAddIngredient}>
-        <Text style={styles.buttonText}>+ Add Test Ingredient</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.addButton} onPress={handleAddIngredient}>
+          <Text style={styles.buttonText}>Add Test Ingredient</Text>
+        </TouchableOpacity>
 
-      {ingredients.map((item) => (
-        <View key={item.id} style={styles.ingredientCard}>
-          <Text>{item.name}</Text>
-          <Text>{item.category}</Text>
-          <Text>{item.unit}</Text>
-          <Text>KSh {item.cost_per_unit}</Text>
+        {ingredients.map((ingredient) => (
+          <View key={ingredient.id} style={styles.card}>
+            <Text style={styles.name}>{ingredient.name}</Text>
+            <Text style={styles.detail}>Category: {ingredient.category}</Text>
+            <Text style={styles.detail}>Unit: {ingredient.unit}</Text>
+            <Text style={styles.detail}>Cost: KSh {ingredient.cost_per_unit}</Text>
 
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => handleDeleteIngredient(item.id)}
-          >
-            <Text style={styles.buttonText}>Delete</Text>
-          </TouchableOpacity>
-        </View>
-      ))}
+            <View style={styles.actions}>
+              <TouchableOpacity
+                style={styles.editButton}
+                onPress={() => handleEditIngredient(ingredient.id)}
+              >
+                <Text style={styles.buttonText}>Edit</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => handleDeleteIngredient(ingredient.id)}
+              >
+                <Text style={styles.buttonText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  actions: {
+    flexDirection: 'row',
+    marginTop: 12,
+  },
   addButton: {
     backgroundColor: '#2563EB',
     borderRadius: 8,
-    marginBottom: 20,
+    marginBottom: 16,
     padding: 12,
   },
   buttonText: {
     color: '#fff',
-    fontWeight: 'bold',
+    fontWeight: '700',
     textAlign: 'center',
   },
-  container: {
+  card: {
     backgroundColor: '#fff',
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 12,
+    padding: 14,
+  },
+  container: {
+    backgroundColor: '#F9FAFB',
     flex: 1,
-    padding: 20,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 120,
   },
   deleteButton: {
     backgroundColor: '#DC2626',
-    borderRadius: 6,
-    marginTop: 10,
-    padding: 8,
-  },
-  ingredientCard: {
-    borderColor: '#ddd',
     borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 12,
-    padding: 12,
+    flex: 1,
+    marginLeft: 10,
+    padding: 10,
+  },
+  detail: {
+    color: '#4B5563',
+    marginTop: 4,
+  },
+  editButton: {
+    backgroundColor: '#2563EB',
+    borderRadius: 8,
+    flex: 1,
+    padding: 10,
+  },
+  name: {
+    color: '#111827',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 4,
   },
   title: {
+    color: '#111827',
     fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontWeight: '700',
+    marginBottom: 16,
   },
 });
