@@ -27,6 +27,12 @@ export type InventoryItem = {
   unit: string | null;
 };
 
+export type Menu = {
+  id: number;
+  name: string;
+  event_date: string | null;
+};
+
 type CountRow = {
   count: number;
 };
@@ -220,5 +226,39 @@ export function updateInventoryQuantity(id: number, quantity: number) {
      SET quantity = ?
      WHERE id = ?`,
     [quantity, id]
+  );
+}
+
+export function getMenus() {
+  return db.getAllSync<Menu>(`
+    SELECT *
+    FROM menus
+    ORDER BY event_date DESC
+  `);
+}
+
+export function addMenu(name: string, eventDate: string) {
+  db.runSync(
+    `INSERT INTO menus (name, event_date)
+     VALUES (?, ?)`,
+    [name, eventDate]
+  );
+}
+
+export function deleteMenu(id: number) {
+  db.runSync(
+    `DELETE FROM menus
+     WHERE id = ?`,
+    [id]
+  );
+}
+
+export function updateMenu(id: number, name: string, eventDate: string) {
+  db.runSync(
+    `UPDATE menus
+     SET name = ?,
+         event_date = ?
+     WHERE id = ?`,
+    [name, eventDate, id]
   );
 }
