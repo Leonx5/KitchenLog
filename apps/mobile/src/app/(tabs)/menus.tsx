@@ -13,7 +13,7 @@ const MenuCard = ({ id, name, type, date, portions, status }: any) => {
         backgroundColor: '#FFFFFF',
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#E5E7EB',
+        borderColor: '#D4A373',
         padding: 16,
         marginBottom: 12,
       }}
@@ -27,22 +27,24 @@ const MenuCard = ({ id, name, type, date, portions, status }: any) => {
         }}
       >
         <View>
-          <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>{name}</Text>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937' }}>{name}</Text>
           <Text style={{ fontSize: 13, color: '#6B7280' }}>{type}</Text>
         </View>
         <View
           style={{
-            backgroundColor: status === 'Active' ? '#EFF6FF' : '#F3F4F6',
+            backgroundColor: status === 'Active' ? '#F8F5F0' : '#F3F4F6',
             borderRadius: 999,
             paddingHorizontal: 10,
             paddingVertical: 4,
+            borderWidth: status === 'Active' ? 1 : 0,
+            borderColor: '#2D6A4F',
           }}
         >
           <Text
             style={{
               fontSize: 11,
               fontWeight: '600',
-              color: status === 'Active' ? '#2563EB' : '#6B7280',
+              color: status === 'Active' ? '#2D6A4F' : '#6B7280',
             }}
           >
             {status}
@@ -72,10 +74,10 @@ const MenuCard = ({ id, name, type, date, portions, status }: any) => {
           alignItems: 'center',
         }}
       >
-        <Text style={{ fontSize: 13, fontWeight: '500', color: '#2563EB' }}>
+        <Text style={{ fontSize: 13, fontWeight: '500', color: '#1B4332' }}>
           Generate Grocery List
         </Text>
-        <ChevronRight size={16} color="#2563EB" />
+        <ChevronRight size={16} color="#1B4332" />
       </View>
     </TouchableOpacity>
   );
@@ -132,23 +134,23 @@ export default function MenusScreen() {
       >
         <View
           style={{
-            backgroundColor: '#EFF6FF',
+            backgroundColor: '#F8F5F0',
             borderRadius: 12,
             padding: 16,
             marginBottom: 20,
             borderWidth: 1,
-            borderColor: '#BFDBFE',
+            borderColor: '#D4A373',
             flexDirection: 'row',
             alignItems: 'center',
             gap: 12,
           }}
         >
-          <ClipboardList size={24} color="#2563EB" />
+          <ClipboardList size={24} color="#1B4332" />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#1E40AF' }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>
               Upcoming Production
             </Text>
-            <Text style={{ fontSize: 12, color: '#1E40AF', opacity: 0.8 }}>
+            <Text style={{ fontSize: 12, color: '#1B4332', opacity: 0.8 }}>
               3 menus require attention this week
             </Text>
           </View>
@@ -164,18 +166,18 @@ export default function MenusScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8F5F0',
     flex: 1,
   },
   header: {
     backgroundColor: '#FFFFFF',
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#D4A373',
     borderBottomWidth: 1,
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
   headerButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#1B4332',
     borderRadius: 8,
     padding: 8,
   },
@@ -191,7 +193,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   title: {
-    color: '#111827',
+    color: '#1F2937',
     fontSize: 24,
     fontWeight: '600',
   },
