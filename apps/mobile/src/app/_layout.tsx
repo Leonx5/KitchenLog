@@ -7,9 +7,9 @@ import {
 
 export default function RootLayout() {
   useEffect(() => {
-  initializeDatabase();
-  seedIngredients();
-}, []);
+    initializeDatabase();
+    seedIngredients();
+  }, []);
 
-  return <Stack />;
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

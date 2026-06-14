@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   addIngredient,
   deleteIngredient,
@@ -22,6 +23,7 @@ type Ingredient = {
 };
 
 export default function IngredientsScreen() {
+  const insets = useSafeAreaInsets();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
 
   const loadIngredients = () => {
@@ -49,40 +51,44 @@ export default function IngredientsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
         <Text style={styles.title}>Ingredients</Text>
-
-        <TouchableOpacity style={styles.addButton} onPress={handleAddIngredient}>
-          <Text style={styles.buttonText}>Add Test Ingredient</Text>
-        </TouchableOpacity>
-
-        {ingredients.map((ingredient) => (
-          <View key={ingredient.id} style={styles.card}>
-            <Text style={styles.name}>{ingredient.name}</Text>
-            <Text style={styles.detail}>Category: {ingredient.category}</Text>
-            <Text style={styles.detail}>Unit: {ingredient.unit}</Text>
-            <Text style={styles.detail}>Cost: KSh {ingredient.cost_per_unit}</Text>
-
-            <View style={styles.actions}>
-              <TouchableOpacity
-                style={styles.editButton}
-                onPress={() => handleEditIngredient(ingredient.id)}
-              >
-                <Text style={styles.buttonText}>Edit</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => handleDeleteIngredient(ingredient.id)}
-              >
-                <Text style={styles.buttonText}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))}
       </View>
-    </ScrollView>
+
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        <View>
+          <TouchableOpacity style={styles.addButton} onPress={handleAddIngredient}>
+            <Text style={styles.buttonText}>Add Ingredient</Text>
+          </TouchableOpacity>
+
+          {ingredients.map((ingredient) => (
+            <View key={ingredient.id} style={styles.card}>
+              <Text style={styles.name}>{ingredient.name}</Text>
+              <Text style={styles.detail}>Category: {ingredient.category}</Text>
+              <Text style={styles.detail}>Unit: {ingredient.unit}</Text>
+              <Text style={styles.detail}>Cost: KSh {ingredient.cost_per_unit}</Text>
+
+              <View style={styles.actions}>
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={() => handleEditIngredient(ingredient.id)}
+                >
+                  <Text style={styles.buttonText}>Edit</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleDeleteIngredient(ingredient.id)}
+                >
+                  <Text style={styles.buttonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -135,16 +141,25 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
   },
+  header: {
+    backgroundColor: '#FFFFFF',
+    borderBottomColor: '#E5E7EB',
+    borderBottomWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
   name: {
     color: '#111827',
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 4,
   },
+  scroll: {
+    flex: 1,
+  },
   title: {
     color: '#111827',
     fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 16,
+    fontWeight: '600',
   },
 });

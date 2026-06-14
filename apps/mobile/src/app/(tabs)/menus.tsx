@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus, Calendar, Users, ClipboardList, ChevronRight } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -112,29 +112,22 @@ export default function MenusScreen() {
   ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F9FAFB', paddingTop: insets.top }}>
-      <View
-        style={{
-          paddingHorizontal: 20,
-          paddingVertical: 16,
-          backgroundColor: '#FFFFFF',
-          borderBottomWidth: 1,
-          borderBottomColor: '#E5E7EB',
-        }}
-      >
-        <View
-          style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-        >
-          <Text style={{ fontSize: 24, fontWeight: '600', color: '#111827' }}>Menus</Text>
-          <TouchableOpacity style={{ backgroundColor: '#2563EB', borderRadius: 8, padding: 8 }}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>Menus</Text>
+          <TouchableOpacity style={styles.headerButton}>
             <Plus size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 20 }}
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + 20 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View
@@ -168,3 +161,38 @@ export default function MenusScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: '#F9FAFB',
+    flex: 1,
+  },
+  header: {
+    backgroundColor: '#FFFFFF',
+    borderBottomColor: '#E5E7EB',
+    borderBottomWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  headerButton: {
+    backgroundColor: '#2563EB',
+    borderRadius: 8,
+    padding: 8,
+  },
+  headerRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+  },
+  title: {
+    color: '#111827',
+    fontSize: 24,
+    fontWeight: '600',
+  },
+});

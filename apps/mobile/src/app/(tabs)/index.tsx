@@ -1,6 +1,7 @@
-﻿import React from 'react';
+import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
-import { TrendingUp, ClipboardList, AlertCircle, Plus } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TrendingUp, ClipboardList, Plus } from 'lucide-react-native';
 
 function StatCard({
   title,
@@ -31,10 +32,20 @@ function StatCard({
 }
 
 export default function Dashboard() {
+  const insets = useSafeAreaInsets();
+
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: '#F9FAFB' }}
-      contentContainerStyle={{ padding: 16 }}
+      style={{
+        flex: 1,
+        backgroundColor: '#F9FAFB',
+        paddingTop: insets.top,
+      }}
+      contentContainerStyle={{
+        paddingHorizontal: 16,
+        paddingBottom: 16,
+        paddingTop: 4,
+      }}
     >
       <Text
         style={{
@@ -43,7 +54,7 @@ export default function Dashboard() {
           marginBottom: 4,
         }}
       >
-        PrepFlow
+        KitchenLog
       </Text>
 
       <Text

@@ -1,11 +1,38 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Package, AlertTriangle, ArrowDown, ArrowUp } from 'lucide-react-native';
+import {
+  addInventoryItem,
+  getIngredients,
+  getInventory,
+  updateInventoryQuantity,
+} from '@/utils/database';
 
-const InventoryItem = ({ name, current, required, unit }: any) => {
+type InventoryRow = {
+  id: number;
+  ingredient_id: number | null;
+  quantity: number;
+  minimum_quantity: number;
+  ingredient_name: string | null;
+  category: string | null;
+  unit: string | null;
+};
+
+const InventoryItem = ({
+  item,
+  onAddStock,
+  onRemoveStock,
+}: {
+  item: InventoryRow;
+  onAddStock: (item: InventoryRow) => void;
+  onRemoveStock: (item: InventoryRow) => void;
+}) => {
+  const current = item.quantity;
+  const required = item.minimum_quantity;
+  const unit = item.unit ?? '';
   const isLow = current < required;
-  const percentage = Math.min((current / required) * 100, 100);
+  const percentage = required > 0 ? Math.min((current / required) * 100, 100) : 100;
 
   return (
     <View
@@ -27,8 +54,12 @@ const InventoryItem = ({ name, current, required, unit }: any) => {
         }}
       >
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827' }}>{name}</Text>
-          <Text style={{ fontSize: 13, color: '#6B7280' }}>Category: Raw Ingredients</Text>
+          <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827' }}>
+            {item.ingredient_name ?? 'Unnamed Ingredient'}
+          </Text>
+          <Text style={{ fontSize: 13, color: '#6B7280' }}>
+            Category: {item.category ?? 'Raw Ingredients'}
+          </Text>
         </View>
         {isLow && (
           <View
@@ -71,6 +102,7 @@ const InventoryItem = ({ name, current, required, unit }: any) => {
 
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
         <TouchableOpacity
+          onPress={() => onRemoveStock(item)}
           style={{
             flex: 1,
             flexDirection: 'row',
@@ -87,6 +119,7 @@ const InventoryItem = ({ name, current, required, unit }: any) => {
           <Text style={{ fontSize: 13, fontWeight: '500', color: '#374151' }}>Remove</Text>
         </TouchableOpacity>
         <TouchableOpacity
+          onPress={() => onAddStock(item)}
           style={{
             flex: 1,
             flexDirection: 'row',
@@ -108,13 +141,42 @@ const InventoryItem = ({ name, current, required, unit }: any) => {
 
 export default function InventoryScreen() {
   const insets = useSafeAreaInsets();
+  const [inventory, setInventory] = useState<InventoryRow[]>([]);
 
-  const mockInventory = [
-    { name: 'Chicken Breast', current: 2.5, required: 15, unit: 'kg' },
-    { name: 'Basmati Rice', current: 45, required: 50, unit: 'kg' },
-    { name: 'Heavy Cream', current: 1.2, required: 5, unit: 'litres' },
-    { name: 'Olive Oil', current: 8, required: 5, unit: 'litres' },
-  ];
+  const loadInventory = () => {
+    const data = getInventory();
+    setInventory(Array.isArray(data) ? data : []);
+  };
+
+  useEffect(() => {
+    loadInventory();
+  }, []);
+
+  const handleAddTestStock = () => {
+    const ingredients = getIngredients();
+    const firstIngredient = Array.isArray(ingredients) ? ingredients[0] : null;
+
+    if (!firstIngredient) {
+      return;
+    }
+
+    addInventoryItem(firstIngredient.id, 10, 5);
+    loadInventory();
+  };
+
+  const handleAddStock = (item: InventoryRow) => {
+    updateInventoryQuantity(item.id, item.quantity + 1);
+    loadInventory();
+  };
+
+  const handleRemoveStock = (item: InventoryRow) => {
+    updateInventoryQuantity(item.id, Math.max(item.quantity - 1, 0));
+    loadInventory();
+  };
+
+  const lowStockCount = inventory.filter(
+    (item) => item.quantity < item.minimum_quantity
+  ).length;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F9FAFB', paddingTop: insets.top }}>
@@ -131,7 +193,10 @@ export default function InventoryScreen() {
           style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
         >
           <Text style={{ fontSize: 24, fontWeight: '600', color: '#111827' }}>Inventory</Text>
-          <TouchableOpacity style={{ backgroundColor: '#2563EB', borderRadius: 8, padding: 8 }}>
+          <TouchableOpacity
+            onPress={handleAddTestStock}
+            style={{ backgroundColor: '#2563EB', borderRadius: 8, padding: 8 }}
+          >
             <Package size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
@@ -142,6 +207,20 @@ export default function InventoryScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 20 }}
         showsVerticalScrollIndicator={false}
       >
+        <TouchableOpacity
+          onPress={handleAddTestStock}
+          style={{
+            backgroundColor: '#2563EB',
+            borderRadius: 8,
+            padding: 12,
+            marginBottom: 16,
+          }}
+        >
+          <Text style={{ color: '#FFFFFF', fontWeight: '600', textAlign: 'center' }}>
+            Add Stock Item
+          </Text>
+        </TouchableOpacity>
+
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
           <View
             style={{
@@ -155,7 +234,9 @@ export default function InventoryScreen() {
             }}
           >
             <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>TOTAL ITEMS</Text>
-            <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>42</Text>
+            <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>
+              {inventory.length}
+            </Text>
           </View>
           <View
             style={{
@@ -168,12 +249,19 @@ export default function InventoryScreen() {
             }}
           >
             <Text style={{ fontSize: 11, color: '#EF4444', marginBottom: 4 }}>LOW STOCK</Text>
-            <Text style={{ fontSize: 18, fontWeight: '600', color: '#EF4444' }}>8</Text>
+            <Text style={{ fontSize: 18, fontWeight: '600', color: '#EF4444' }}>
+              {lowStockCount}
+            </Text>
           </View>
         </View>
 
-        {mockInventory.map((item, index) => (
-          <InventoryItem key={index} {...item} />
+        {inventory.map((item) => (
+          <InventoryItem
+            key={item.id}
+            item={item}
+            onAddStock={handleAddStock}
+            onRemoveStock={handleRemoveStock}
+          />
         ))}
       </ScrollView>
     </View>
