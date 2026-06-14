@@ -36,7 +36,7 @@ export default function IngredientsScreen() {
   }, []);
 
   const handleAddIngredient = () => {
-    addIngredient('Test Ingredient', 'Test', 'kg', 100);
+    addIngredient('Ingredient', 'Test', 'kg', 100);
     loadIngredients();
   };
 
@@ -46,7 +46,7 @@ export default function IngredientsScreen() {
   };
 
   const handleEditIngredient = (id: number) => {
-    updateIngredient(id, 'Edited Ingredient');
+    updateIngredient(id, 'Updated Ingredient');
     loadIngredients();
   };
 

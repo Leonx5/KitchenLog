@@ -35,7 +35,7 @@ export default function RecipesScreen() {
   }, []);
 
   const handleAddRecipe = () => {
-    addRecipe('Test Recipe', 'Test', 4);
+    addRecipe('Recipe', 'Test', 4);
     loadRecipes();
   };
 

@@ -217,7 +217,7 @@ export default function InventoryScreen() {
           }}
         >
           <Text style={{ color: '#FFFFFF', fontWeight: '600', textAlign: 'center' }}>
-            Add Stock Item
+            Add Inventory Item
           </Text>
         </TouchableOpacity>
 
