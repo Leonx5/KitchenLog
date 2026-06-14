@@ -40,7 +40,7 @@ const InventoryItem = ({
         backgroundColor: '#FFFFFF',
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#E5E7EB',
+        borderColor: '#D4A373',
         padding: 16,
         marginBottom: 12,
       }}
@@ -54,8 +54,8 @@ const InventoryItem = ({
         }}
       >
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 16, fontWeight: '600', color: '#111827' }}>
-            {item.ingredient_name ?? 'Unnamed Ingredient'}
+          <Text style={{ fontSize: 16, fontWeight: '600', color: '#1F2937' }}>
+            {item.ingredient_name ?? 'Ingredient'}
           </Text>
           <Text style={{ fontSize: 13, color: '#6B7280' }}>
             Category: {item.category ?? 'Raw Ingredients'}
@@ -67,14 +67,16 @@ const InventoryItem = ({
               flexDirection: 'row',
               alignItems: 'center',
               gap: 4,
-              backgroundColor: '#FEF2F2',
+              backgroundColor: '#F8F5F0',
               paddingHorizontal: 8,
               paddingVertical: 4,
               borderRadius: 999,
+              borderWidth: 1,
+              borderColor: '#D4A373',
             }}
           >
-            <AlertTriangle size={12} color="#EF4444" />
-            <Text style={{ fontSize: 11, fontWeight: '600', color: '#EF4444' }}>LOW STOCK</Text>
+            <AlertTriangle size={12} color="#D4A373" />
+            <Text style={{ fontSize: 11, fontWeight: '600', color: '#D4A373' }}>LOW STOCK</Text>
           </View>
         )}
       </View>
@@ -82,7 +84,7 @@ const InventoryItem = ({
       <View style={{ marginBottom: 8 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
           <Text style={{ fontSize: 12, color: '#6B7280' }}>Stock Level</Text>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: '#111827' }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: '#1F2937' }}>
             {current} / {required} {unit}
           </Text>
         </View>
@@ -93,7 +95,7 @@ const InventoryItem = ({
             style={{
               width: `${percentage}%`,
               height: '100%',
-              backgroundColor: isLow ? '#EF4444' : '#16A34A',
+              backgroundColor: isLow ? '#D4A373' : '#16A34A',
               borderRadius: 3,
             }}
           />
@@ -112,7 +114,7 @@ const InventoryItem = ({
             paddingVertical: 8,
             borderRadius: 8,
             borderWidth: 1,
-            borderColor: '#E5E7EB',
+            borderColor: '#D4A373',
           }}
         >
           <ArrowDown size={14} color="#6B7280" />
@@ -128,7 +130,7 @@ const InventoryItem = ({
             gap: 6,
             paddingVertical: 8,
             borderRadius: 8,
-            backgroundColor: '#2563EB',
+            backgroundColor: '#1B4332',
           }}
         >
           <ArrowUp size={14} color="#FFFFFF" />
@@ -152,7 +154,7 @@ export default function InventoryScreen() {
     loadInventory();
   }, []);
 
-  const handleAddTestStock = () => {
+  const handleAddInventoryItem = () => {
     const ingredients = getIngredients();
     const firstIngredient = Array.isArray(ingredients) ? ingredients[0] : null;
 
@@ -179,23 +181,23 @@ export default function InventoryScreen() {
   ).length;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F9FAFB', paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: '#F8F5F0', paddingTop: insets.top }}>
       <View
         style={{
           paddingHorizontal: 20,
           paddingVertical: 16,
           backgroundColor: '#FFFFFF',
           borderBottomWidth: 1,
-          borderBottomColor: '#E5E7EB',
+          borderBottomColor: '#D4A373',
         }}
       >
         <View
           style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
         >
-          <Text style={{ fontSize: 24, fontWeight: '600', color: '#111827' }}>Inventory</Text>
+          <Text style={{ fontSize: 24, fontWeight: '600', color: '#1F2937' }}>Inventory</Text>
           <TouchableOpacity
-            onPress={handleAddTestStock}
-            style={{ backgroundColor: '#2563EB', borderRadius: 8, padding: 8 }}
+            onPress={handleAddInventoryItem}
+            style={{ backgroundColor: '#1B4332', borderRadius: 8, padding: 8 }}
           >
             <Package size={20} color="#FFFFFF" />
           </TouchableOpacity>
@@ -208,9 +210,9 @@ export default function InventoryScreen() {
         showsVerticalScrollIndicator={false}
       >
         <TouchableOpacity
-          onPress={handleAddTestStock}
+          onPress={handleAddInventoryItem}
           style={{
-            backgroundColor: '#2563EB',
+            backgroundColor: '#1B4332',
             borderRadius: 8,
             padding: 12,
             marginBottom: 16,
@@ -229,12 +231,12 @@ export default function InventoryScreen() {
               padding: 12,
               borderRadius: 12,
               borderWidth: 1,
-              borderColor: '#E5E7EB',
+              borderColor: '#D4A373',
               marginRight: 8,
             }}
           >
             <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>TOTAL ITEMS</Text>
-            <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>
+            <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937' }}>
               {inventory.length}
             </Text>
           </View>
@@ -245,11 +247,11 @@ export default function InventoryScreen() {
               padding: 12,
               borderRadius: 12,
               borderWidth: 1,
-              borderColor: '#E5E7EB',
+              borderColor: '#D4A373',
             }}
           >
-            <Text style={{ fontSize: 11, color: '#EF4444', marginBottom: 4 }}>LOW STOCK</Text>
-            <Text style={{ fontSize: 18, fontWeight: '600', color: '#EF4444' }}>
+            <Text style={{ fontSize: 11, color: '#D4A373', marginBottom: 4 }}>LOW STOCK</Text>
+            <Text style={{ fontSize: 18, fontWeight: '600', color: '#D4A373' }}>
               {lowStockCount}
             </Text>
           </View>

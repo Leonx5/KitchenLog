@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   addButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#1B4332',
     borderRadius: 8,
     marginBottom: 16,
     padding: 12,
@@ -110,14 +110,14 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#fff',
-    borderColor: '#E5E7EB',
+    borderColor: '#D4A373',
     borderRadius: 10,
     borderWidth: 1,
     marginBottom: 12,
     padding: 14,
   },
   container: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#F8F5F0',
     flex: 1,
   },
   content: {
@@ -136,20 +136,20 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   editButton: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#2D6A4F',
     borderRadius: 8,
     flex: 1,
     padding: 10,
   },
   header: {
     backgroundColor: '#FFFFFF',
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#D4A373',
     borderBottomWidth: 1,
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
   name: {
-    color: '#111827',
+    color: '#1F2937',
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 4,
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    color: '#111827',
+    color: '#1F2937',
     fontSize: 24,
     fontWeight: '600',
   },

@@ -21,7 +21,7 @@ function StatCard({
         padding: 16,
         marginHorizontal: 4,
         borderWidth: 1,
-        borderColor: '#E5E7EB',
+        borderColor: '#D4A373',
       }}
     >
       <Icon size={22} />
