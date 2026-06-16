@@ -9,67 +9,75 @@ import {
   ChefHat,
   PackageCheck,
   TrendingDown,
+  Plus,
+  Trash2,
 } from 'lucide-react-native';
+import {
+  getMenu,
+  getMenuRecipes,
+  getRecipes,
+  addRecipeToMenu,
+  removeRecipeFromMenu,
+  getMenuShoppingList,
+  setMenuStatus,
+} from '@/utils/database';
 
 export default function MenuDetailScreen() {
   const { id } = useLocalSearchParams();
+  const menuId = Number(id);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
   const [menu, setMenu] = useState<any>(null);
+  const [menuRecipes, setMenuRecipes] = useState<any[]>([]);
+  const [shoppingList, setShoppingList] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('production'); // production or shopping
 
+  const loadData = () => {
+    const menuData = getMenu(menuId);
+    const recipeLinks = getMenuRecipes(menuId);
+    const list = getMenuShoppingList(menuId);
+    setMenu(menuData);
+    setMenuRecipes(recipeLinks);
+    setShoppingList(list);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    setTimeout(() => {
-      setMenu({
-        id: 1,
-        name: 'Corporate Gala',
-        event_type: 'Dinner Event',
-        target_date: 'June 12, 2026',
-        items: [
-          { recipe_name: 'Spicy Thai Curry', portions_required: 250 },
-          { recipe_name: 'Caesar Salad', portions_required: 250 },
-          { recipe_name: 'Chocolate Mousse', portions_required: 250 },
-        ],
-        groceryList: [
-          {
-            name: 'Chicken Breast',
-            unit: 'kg',
-            required: 37.5,
-            in_stock: 2.5,
-            deficit: 35.0,
-            price: 800,
-          },
-          {
-            name: 'Basmati Rice',
-            unit: 'kg',
-            required: 25.0,
-            in_stock: 45.0,
-            deficit: -20.0,
-            price: 250,
-          },
-          {
-            name: 'Heavy Cream',
-            unit: 'litres',
-            required: 15.0,
-            in_stock: 1.2,
-            deficit: 13.8,
-            price: 600,
-          },
-          {
-            name: 'Coconut Milk',
-            unit: 'litres',
-            required: 20.0,
-            in_stock: 5.0,
-            deficit: 15.0,
-            price: 400,
-          },
-        ],
-      });
-      setLoading(false);
-    }, 500);
-  }, [id]);
+    loadData();
+  }, [menuId]);
+
+  const handleStatusTransition = () => {
+    const statusFlow = ['Draft', 'Active', 'Completed'];
+    const currentIndex = statusFlow.indexOf(menu.status || 'Draft');
+    if (currentIndex < statusFlow.length - 1) {
+      setMenuStatus(menuId, statusFlow[currentIndex + 1]);
+      loadData();
+    }
+  };
+
+  const handleReopen = () => {
+    setMenuStatus(menuId, 'Active');
+    loadData();
+  };
+
+  const handleAddFirstRecipe = () => {
+    const allRecipes = getRecipes();
+    if (allRecipes && allRecipes.length > 0) {
+      // Check if already linked to avoid duplicates for this simple demo
+      const alreadyLinked = menuRecipes.some(r => r.recipe_id === allRecipes[0].id);
+      if (!alreadyLinked) {
+        addRecipeToMenu(menuId, allRecipes[0].id, 50);
+        loadData();
+      }
+    }
+  };
+
+  const handleRemoveRecipe = (recipeId: number) => {
+    removeRecipeFromMenu(menuId, recipeId);
+    loadData();
+  };
 
   if (loading || !menu) {
     return (
@@ -78,21 +86,20 @@ export default function MenuDetailScreen() {
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: '#F9FAFB',
+          backgroundColor: '#F8F5F0',
         }}
       >
-        <ActivityIndicator color="#2563EB" />
+        <ActivityIndicator color="#1B4332" />
       </View>
     );
   }
 
-  const totalCost = menu.groceryList.reduce((acc: number, item: any) => {
-    const purchaseAmount = Math.max(0, item.deficit);
-    return acc + purchaseAmount * item.price;
-  }, 0);
+  // Simplified totals for Phase 1
+  const groceryList: any[] = [];
+  const totalCost = 0;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F9FAFB', paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: '#F8F5F0', paddingTop: insets.top }}>
       {/* Header */}
       <View
         style={{
@@ -100,19 +107,51 @@ export default function MenuDetailScreen() {
           paddingVertical: 16,
           backgroundColor: '#FFFFFF',
           borderBottomWidth: 1,
-          borderBottomColor: '#E5E7EB',
+          borderBottomColor: '#D4A373',
         }}
       >
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
           <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }}>
-            <ChevronLeft size={24} color="#111827" />
+            <ChevronLeft size={24} color="#1F2937" />
           </TouchableOpacity>
-          <View>
-            <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>{menu.name}</Text>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937' }}>{menu.name}</Text>
+              <View 
+                style={{ 
+                  backgroundColor: menu.status === 'Completed' ? '#16A34A' : '#1B4332', 
+                  borderRadius: 4, 
+                  paddingHorizontal: 6, 
+                  paddingVertical: 2 
+                }}
+              >
+                <Text style={{ color: 'white', fontSize: 10, fontWeight: '700' }}>
+                  {(menu.status || 'Draft').toUpperCase()}
+                </Text>
+              </View>
+            </View>
             <Text style={{ fontSize: 13, color: '#6B7280' }}>
-              {menu.event_type} • {menu.target_date}
+              Catering Event • {menu.event_date}
             </Text>
           </View>
+
+          {menu.status === 'Completed' ? (
+            <TouchableOpacity 
+              onPress={handleReopen}
+              style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#D4A373', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
+            >
+              <Text style={{ color: '#1B4332', fontSize: 12, fontWeight: '600' }}>Re-open</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              onPress={handleStatusTransition}
+              style={{ backgroundColor: '#1B4332', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
+            >
+              <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>
+                {menu.status === 'Active' ? 'Complete' : 'Next Stage'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Tab switcher - Ghost Style */}
@@ -124,7 +163,7 @@ export default function MenuDetailScreen() {
               style={{
                 paddingBottom: 12,
                 borderBottomWidth: 2,
-                borderBottomColor: activeTab === tab ? '#2563EB' : 'transparent',
+                borderBottomColor: activeTab === tab ? '#1B4332' : 'transparent',
                 marginBottom: -13, // Overlap border
               }}
             >
@@ -132,7 +171,7 @@ export default function MenuDetailScreen() {
                 style={{
                   fontSize: 14,
                   fontWeight: activeTab === tab ? '600' : '500',
-                  color: activeTab === tab ? '#111827' : '#6B7280',
+                  color: activeTab === tab ? '#1F2937' : '#6B7280',
                   textTransform: 'capitalize',
                 }}
               >
@@ -155,39 +194,62 @@ export default function MenuDetailScreen() {
                 backgroundColor: '#FFFFFF',
                 borderRadius: 12,
                 borderWidth: 1,
-                borderColor: '#E5E7EB',
+                borderColor: '#D4A373',
                 padding: 16,
                 marginBottom: 16,
               }}
             >
               <View
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}
+                style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}
               >
-                <ChefHat size={18} color="#2563EB" />
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
-                  Recipe Requirements
-                </Text>
-              </View>
-              {menu.items.map((item: any, i: number) => (
-                <View
-                  key={i}
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    paddingVertical: 10,
-                    borderBottomWidth: i === menu.items.length - 1 ? 0 : 1,
-                    borderBottomColor: '#F3F4F6',
-                  }}
-                >
-                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#111827' }}>
-                    {item.recipe_name}
-                  </Text>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#2563EB' }}>
-                    {item.portions_required} Portions
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <ChefHat size={18} color="#1B4332" />
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>
+                    Recipe Requirements
                   </Text>
                 </View>
-              ))}
+                <TouchableOpacity 
+                  onPress={handleAddFirstRecipe}
+                  style={{ backgroundColor: '#1B4332', borderRadius: 8, padding: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                >
+                  <Plus size={14} color="white" />
+                  <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Add First</Text>
+                </TouchableOpacity>
+              </View>
+
+              {menuRecipes.length === 0 ? (
+                <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', paddingVertical: 20 }}>
+                  No recipes added to this menu yet.
+                </Text>
+              ) : (
+                menuRecipes.map((item: any, i: number) => (
+                  <View
+                    key={item.recipe_id}
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      paddingVertical: 10,
+                      borderBottomWidth: i === menuRecipes.length - 1 ? 0 : 1,
+                      borderBottomColor: '#F3F4F6',
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
+                        {item.name}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#1B4332' }}>
+                        {item.servings} Servings
+                      </Text>
+                      <TouchableOpacity onPress={() => handleRemoveRecipe(item.recipe_id)}>
+                        <Trash2 size={16} color="#DC2626" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+              )}
             </View>
 
             <View
@@ -195,46 +257,52 @@ export default function MenuDetailScreen() {
                 backgroundColor: '#FFFFFF',
                 borderRadius: 12,
                 borderWidth: 1,
-                borderColor: '#E5E7EB',
+                borderColor: '#D4A373',
                 padding: 16,
               }}
             >
               <View
                 style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}
               >
-                <PackageCheck size={18} color="#2563EB" />
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
+                <PackageCheck size={18} color="#1B4332" />
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>
                   Consolidated Prep Totals
                 </Text>
               </View>
-              {menu.groceryList.map((item: any, i: number) => (
-                <View
-                  key={i}
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    paddingVertical: 10,
-                    borderBottomWidth: i === menu.groceryList.length - 1 ? 0 : 1,
-                    borderBottomColor: '#F3F4F6',
-                  }}
-                >
-                  <Text style={{ fontSize: 14, color: '#374151' }}>{item.name}</Text>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
-                    {item.required} {item.unit}
-                  </Text>
-                </View>
-              ))}
+              {shoppingList.length === 0 ? (
+                <Text style={{ fontSize: 13, color: '#6B7280', fontStyle: 'italic' }}>
+                  No prep requirements found. Add recipes with ingredients.
+                </Text>
+              ) : (
+                shoppingList.map((item: any, i: number) => (
+                  <View
+                    key={i}
+                    style={{
+                      flexDirection: 'row',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      paddingVertical: 10,
+                      borderBottomWidth: i === shoppingList.length - 1 ? 0 : 1,
+                      borderBottomColor: '#F3F4F6',
+                    }}
+                  >
+                    <Text style={{ fontSize: 14, color: '#374151' }}>{item.name}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>
+                      {item.total_quantity.toFixed(2)} {item.unit}
+                    </Text>
+                  </View>
+                ))
+              )}
             </View>
           </>
         ) : (
           <>
             <View
               style={{
-                backgroundColor: '#F0F9FF',
+                backgroundColor: '#F8F5F0',
                 borderRadius: 12,
                 borderWidth: 1,
-                borderColor: '#BAE6FD',
+                borderColor: '#D4A373',
                 padding: 16,
                 marginBottom: 16,
               }}
@@ -251,13 +319,13 @@ export default function MenuDetailScreen() {
                     style={{
                       fontSize: 11,
                       fontWeight: '600',
-                      color: '#0369A1',
+                      color: '#1B4332',
                       textTransform: 'uppercase',
                     }}
                   >
                     EST. PURCHASING COST
                   </Text>
-                  <Text style={{ fontSize: 24, fontWeight: '700', color: '#0369A1', marginTop: 4 }}>
+                  <Text style={{ fontSize: 24, fontWeight: '700', color: '#1B4332', marginTop: 4 }}>
                     KSh {totalCost.toLocaleString()}
                   </Text>
                 </View>
@@ -267,82 +335,67 @@ export default function MenuDetailScreen() {
                     borderRadius: 8,
                     padding: 8,
                     borderWidth: 1,
-                    borderColor: '#BAE6FD',
+                    borderColor: '#D4A373',
                   }}
                 >
-                  <Printer size={20} color="#0369A1" />
+                  <Printer size={20} color="#1B4332" />
                 </TouchableOpacity>
               </View>
             </View>
 
-            {menu.groceryList.map((item: any, i: number) => {
-              const purchaseAmount = Math.max(0, item.deficit);
-              const cost = purchaseAmount * item.price;
+            <View
+              style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: '#D4A373',
+                padding: 16,
+              }}
+            >
+              <View
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}
+              >
+                <ShoppingCart size={18} color="#1B4332" />
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>
+                  Shopping List
+                </Text>
+              </View>
 
-              return (
-                <View
-                  key={i}
-                  style={{
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: 12,
-                    borderWidth: 1,
-                    borderColor: '#E5E7EB',
-                    padding: 16,
-                    marginBottom: 12,
-                  }}
-                >
+              {shoppingList.length === 0 ? (
+                <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', paddingVertical: 40 }}>
+                  Your shopping list is empty.
+                </Text>
+              ) : (
+                shoppingList.map((item: any, i: number) => (
                   <View
+                    key={i}
                     style={{
                       flexDirection: 'row',
                       justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      marginBottom: 8,
+                      alignItems: 'center',
+                      paddingVertical: 12,
+                      borderBottomWidth: i === shoppingList.length - 1 ? 0 : 1,
+                      borderBottomColor: '#F3F4F6',
                     }}
                   >
                     <View>
-                      <Text style={{ fontSize: 15, fontWeight: '600', color: '#111827' }}>
+                      <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>
                         {item.name}
                       </Text>
-                      <Text style={{ fontSize: 12, color: '#6B7280' }}>
-                        Req: {item.required} {item.unit} • In Stock: {item.in_stock} {item.unit}
-                      </Text>
                     </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          fontWeight: '600',
-                          color: purchaseAmount > 0 ? '#111827' : '#16A34A',
-                        }}
-                      >
-                        {purchaseAmount > 0 ? `${purchaseAmount} ${item.unit}` : 'Stock Sufficient'}
-                      </Text>
-                      {purchaseAmount > 0 && (
-                        <Text style={{ fontSize: 12, color: '#6B7280' }}>
-                          KSh {cost.toLocaleString()}
-                        </Text>
-                      )}
-                    </View>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#1B4332' }}>
+                      {item.total_quantity.toFixed(2)} {item.unit}
+                    </Text>
                   </View>
-                  {purchaseAmount > 0 && (
-                    <View
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}
-                    >
-                      <TrendingDown size={14} color="#EF4444" />
-                      <Text style={{ fontSize: 11, fontWeight: '500', color: '#EF4444' }}>
-                        Deficit: {item.deficit} {item.unit}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
+                ))
+              )}
+            </View>
           </>
         )}
 
         <TouchableOpacity
           style={{
-            backgroundColor: activeTab === 'shopping' ? '#2563EB' : '#FFFFFF',
+            backgroundColor: activeTab === 'shopping' ? '#1B4332' : '#FFFFFF',
             borderRadius: 12,
             padding: 16,
             flexDirection: 'row',
@@ -350,7 +403,7 @@ export default function MenuDetailScreen() {
             justifyContent: 'center',
             marginTop: 24,
             borderWidth: activeTab === 'shopping' ? 0 : 1,
-            borderColor: '#E5E7EB',
+            borderColor: '#D4A373',
             gap: 8,
           }}
         >
@@ -363,8 +416,8 @@ export default function MenuDetailScreen() {
             </>
           ) : (
             <>
-              <Printer size={20} color="#111827" />
-              <Text style={{ color: '#111827', fontSize: 16, fontWeight: '600' }}>
+              <Printer size={20} color="#1B4332" />
+              <Text style={{ color: '#1B4332', fontSize: 16, fontWeight: '600' }}>
                 Print Production Sheet
               </Text>
             </>

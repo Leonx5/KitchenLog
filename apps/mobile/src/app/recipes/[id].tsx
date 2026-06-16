@@ -9,37 +9,54 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft, Scale, DollarSign, ListTodo, Info } from 'lucide-react-native';
+import { ChevronLeft, Scale, DollarSign, ListTodo, Info, Plus, Trash2 } from 'lucide-react-native';
+import {
+  getRecipe,
+  getRecipeIngredients,
+  getIngredients,
+  addIngredientToRecipe,
+  removeIngredientFromRecipe,
+} from '@/utils/database';
 
 export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams();
+  const recipeId = Number(id);
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const [requiredYield, setRequiredYield] = useState('10');
   const [loading, setLoading] = useState(true);
   const [recipe, setRecipe] = useState<any>(null);
+  const [ingredients, setIngredients] = useState<any[]>([]);
 
-  // Mock data for initial build
+  const loadData = () => {
+    const recipeData = getRecipe(recipeId);
+    const linkedIngredients = getRecipeIngredients(recipeId);
+    setRecipe(recipeData);
+    setIngredients(linkedIngredients);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    setTimeout(() => {
-      setRecipe({
-        id: 1,
-        name: 'Spicy Thai Curry',
-        category: 'Main',
-        base_yield: 10,
-        portion_size: '350g',
-        notes: 'Best served with jasmine rice and fresh cilantro.',
-        ingredients: [
-          { name: 'Chicken Breast', quantity: 1.5, unit: 'kg', price: 800 },
-          { name: 'Coconut Milk', quantity: 0.8, unit: 'litres', price: 400 },
-          { name: 'Curry Paste', quantity: 0.2, unit: 'kg', price: 1200 },
-          { name: 'Mixed Vegetables', quantity: 1.2, unit: 'kg', price: 300 },
-        ],
-      });
-      setLoading(false);
-    }, 500);
-  }, [id]);
+    loadData();
+  }, [recipeId]);
+
+  const handleAddFirstIngredient = () => {
+    const allIngredients = getIngredients();
+    if (allIngredients && allIngredients.length > 0) {
+      // Check if already linked
+      const alreadyLinked = ingredients.some(ing => ing.ingredient_id === allIngredients[0].id);
+      if (!alreadyLinked) {
+        addIngredientToRecipe(recipeId, allIngredients[0].id, 1);
+        loadData();
+      }
+    }
+  };
+
+  const handleRemoveIngredient = (ingredientId: number) => {
+    removeIngredientFromRecipe(recipeId, ingredientId);
+    loadData();
+  };
 
   if (loading || !recipe) {
     return (
@@ -48,24 +65,24 @@ export default function RecipeDetailScreen() {
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: '#F9FAFB',
+          backgroundColor: '#F8F5F0',
         }}
       >
-        <ActivityIndicator color="#2563EB" />
+        <ActivityIndicator color="#1B4332" />
       </View>
     );
   }
 
-  const scaleFactor = parseFloat(requiredYield) / recipe.base_yield || 1;
-  const totalCost = recipe.ingredients.reduce(
-    (acc: number, ing: any) => acc + ing.quantity * ing.price,
-    0
-  );
-  const currentTotalCost = totalCost * scaleFactor;
-  const costPerPortion = totalCost / recipe.base_yield;
+  // Use base portions from database
+  const baseYield = recipe.portions || 1;
+  const scaleFactor = parseFloat(requiredYield) / baseYield || 1;
+  
+  // Costing calculations (simplified as per requirements, but still using real ingredients)
+  const costPerPortion = 0; // Will be implemented in future milestone
+  const currentTotalCost = 0;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#F9FAFB', paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: '#F8F5F0', paddingTop: insets.top }}>
       {/* Header */}
       <View
         style={{
@@ -75,16 +92,16 @@ export default function RecipeDetailScreen() {
           paddingVertical: 16,
           backgroundColor: '#FFFFFF',
           borderBottomWidth: 1,
-          borderBottomColor: '#E5E7EB',
+          borderBottomColor: '#D4A373',
         }}
       >
         <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }}>
-          <ChevronLeft size={24} color="#111827" />
+          <ChevronLeft size={24} color="#1F2937" />
         </TouchableOpacity>
         <View>
-          <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>{recipe.name}</Text>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937' }}>{recipe.name}</Text>
           <Text style={{ fontSize: 13, color: '#6B7280' }}>
-            {recipe.category} • Base: {recipe.base_yield} portions
+            {recipe.category} • Base: {baseYield} portions
           </Text>
         </View>
       </View>
@@ -100,14 +117,14 @@ export default function RecipeDetailScreen() {
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             borderWidth: 1,
-            borderColor: '#E5E7EB',
+            borderColor: '#D4A373',
             padding: 16,
             marginBottom: 16,
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <Scale size={18} color="#2563EB" />
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
+            <Scale size={18} color="#1B4332" />
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>
               Scaling Engine
             </Text>
           </View>
@@ -121,15 +138,15 @@ export default function RecipeDetailScreen() {
                 onChangeText={setRequiredYield}
                 keyboardType="numeric"
                 style={{
-                  backgroundColor: '#F9FAFB',
+                  backgroundColor: '#F8F5F0',
                   borderRadius: 8,
                   borderWidth: 1,
-                  borderColor: '#E5E7EB',
+                  borderColor: '#D4A373',
                   paddingHorizontal: 12,
                   height: 44,
                   fontSize: 16,
                   fontWeight: '600',
-                  color: '#111827',
+                  color: '#1F2937',
                 }}
               />
             </View>
@@ -144,7 +161,7 @@ export default function RecipeDetailScreen() {
           </View>
         </View>
 
-        {/* Costing Engine */}
+        {/* Costing Engine (Placeholders as per requirements) */}
         <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
           <View
             style={{
@@ -152,12 +169,12 @@ export default function RecipeDetailScreen() {
               backgroundColor: '#FFFFFF',
               borderRadius: 12,
               borderWidth: 1,
-              borderColor: '#E5E7EB',
+              borderColor: '#D4A373',
               padding: 16,
             }}
           >
             <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>TOTAL COST</Text>
-            <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>
+            <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937' }}>
               KSh {currentTotalCost.toLocaleString()}
             </Text>
           </View>
@@ -167,50 +184,14 @@ export default function RecipeDetailScreen() {
               backgroundColor: '#FFFFFF',
               borderRadius: 12,
               borderWidth: 1,
-              borderColor: '#E5E7EB',
+              borderColor: '#D4A373',
               padding: 16,
             }}
           >
             <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>PER PORTION</Text>
-            <Text style={{ fontSize: 18, fontWeight: '600', color: '#2563EB' }}>
+            <Text style={{ fontSize: 18, fontWeight: '600', color: '#1B4332' }}>
               KSh {costPerPortion.toFixed(2)}
             </Text>
-          </View>
-        </View>
-
-        {/* Selling Price Calculator */}
-        <View
-          style={{
-            backgroundColor: '#F0F9FF',
-            borderRadius: 12,
-            borderWidth: 1,
-            borderColor: '#BAE6FD',
-            padding: 16,
-            marginBottom: 16,
-          }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <DollarSign size={18} color="#0369A1" />
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#0369A1' }}>
-              Profit Margin Models
-            </Text>
-          </View>
-          <View style={{ gap: 8 }}>
-            {[30, 35, 40].map((margin) => (
-              <View
-                key={margin}
-                style={{
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-              >
-                <Text style={{ fontSize: 13, color: '#0369A1' }}>{margin}% Food Cost</Text>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: '#0369A1' }}>
-                  KSh {(costPerPortion / (margin / 100)).toFixed(0)}
-                </Text>
-              </View>
-            ))}
           </View>
         </View>
 
@@ -220,41 +201,62 @@ export default function RecipeDetailScreen() {
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             borderWidth: 1,
-            borderColor: '#E5E7EB',
+            borderColor: '#D4A373',
             padding: 16,
           }}
         >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <ListTodo size={18} color="#2563EB" />
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
-              Required Ingredients
-            </Text>
-          </View>
-          {recipe.ingredients.map((ing: any, i: number) => (
-            <View
-              key={i}
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                paddingVertical: 10,
-                borderBottomWidth: i === recipe.ingredients.length - 1 ? 0 : 1,
-                borderBottomColor: '#F3F4F6',
-              }}
-            >
-              <View>
-                <Text style={{ fontSize: 14, fontWeight: '500', color: '#111827' }}>
-                  {ing.name}
-                </Text>
-                <Text style={{ fontSize: 12, color: '#6B7280' }}>
-                  Base: {ing.quantity} {ing.unit}
-                </Text>
-              </View>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#111827' }}>
-                {(ing.quantity * scaleFactor).toFixed(2)} {ing.unit}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <ListTodo size={18} color="#1B4332" />
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>
+                Required Ingredients
               </Text>
             </View>
-          ))}
+            <TouchableOpacity 
+              onPress={handleAddFirstIngredient}
+              style={{ backgroundColor: '#1B4332', borderRadius: 8, padding: 6, flexDirection: 'row', alignItems: 'center', gap: 4 }}
+            >
+              <Plus size={14} color="white" />
+              <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>Add First</Text>
+            </TouchableOpacity>
+          </View>
+
+          {ingredients.length === 0 ? (
+            <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', paddingVertical: 20 }}>
+              No ingredients added to this recipe yet.
+            </Text>
+          ) : (
+            ingredients.map((ing: any, i: number) => (
+              <View
+                key={ing.ingredient_id}
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  paddingVertical: 10,
+                  borderBottomWidth: i === ingredients.length - 1 ? 0 : 1,
+                  borderBottomColor: '#F3F4F6',
+                }}
+              >
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: '500', color: '#1F2937' }}>
+                    {ing.name}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: '#6B7280' }}>
+                    Base: {ing.quantity} {ing.unit}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>
+                    {(ing.quantity * scaleFactor).toFixed(2)} {ing.unit}
+                  </Text>
+                  <TouchableOpacity onPress={() => handleRemoveIngredient(ing.ingredient_id)}>
+                    <Trash2 size={16} color="#DC2626" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))
+          )}
         </View>
 
         {/* Notes */}
@@ -262,11 +264,11 @@ export default function RecipeDetailScreen() {
           <View
             style={{
               marginTop: 16,
-              backgroundColor: '#F9FAFB',
+              backgroundColor: '#F8F5F0',
               borderRadius: 12,
               padding: 16,
               borderWidth: 1,
-              borderColor: '#E5E7EB',
+              borderColor: '#D4A373',
               borderStyle: 'dashed',
             }}
           >

@@ -4,94 +4,112 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus, Calendar, Users, ClipboardList, ChevronRight, Trash2 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { addMenu, deleteMenu, getMenus, Menu } from '@/utils/database';
+import { Colors } from '@/theme/colors';
+import { Typography } from '@/theme/typography';
+import { AnimatedButton, FadeInView } from '@/components/AnimatedWrappers';
 
 const MenuCard = ({ id, name, type, date, portions, status, onDelete }: any) => {
   const router = useRouter();
   return (
-    <TouchableOpacity
-      onPress={() => router.push(`/menus/${id}` as any)}
+    <FadeInView
       style={{
-        backgroundColor: '#FFFFFF',
+        backgroundColor: Colors.surface,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#D4A373',
+        borderColor: Colors.border,
         padding: 16,
         marginBottom: 12,
       }}
+      duration={200}
     >
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: 12,
-        }}
+      <TouchableOpacity
+        onPress={() => router.push(`/menus/${id}` as any)}
       >
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 18, fontWeight: '600', color: '#1F2937' }}>{name}</Text>
-          <Text style={{ fontSize: 13, color: '#6B7280' }}>{type ?? 'Event'}</Text>
-        </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View
-            style={{
-              backgroundColor: status === 'Active' ? '#F8F5F0' : '#F3F4F6',
-              borderRadius: 999,
-              paddingHorizontal: 10,
-              paddingVertical: 4,
-              borderWidth: status === 'Active' ? 1 : 0,
-              borderColor: '#2D6A4F',
-            }}
-          >
-            <Text
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            marginBottom: 12,
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={[Typography.cardTitle, { color: Colors.text }]}>{name}</Text>
+            <Text style={[Typography.bodyText, { color: '#6B7280' }]}>{type ?? 'Event'}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View
               style={{
-                fontSize: 11,
-                fontWeight: '600',
-                color: status === 'Active' ? '#2D6A4F' : '#6B7280',
+                backgroundColor: 
+                  status === 'Completed' ? 'rgba(22, 163, 74, 0.1)' : 
+                  status === 'Active' ? 'rgba(45, 106, 79, 0.1)' : 
+                  '#F3F4F6',
+                borderRadius: 999,
+                paddingHorizontal: 10,
+                paddingVertical: 4,
+                borderWidth: status === 'Active' || status === 'Completed' ? 1 : 0,
+                borderColor: 
+                  status === 'Completed' ? Colors.success : 
+                  status === 'Active' ? Colors.secondary : 
+                  '#6B7280',
               }}
             >
-              {status ?? 'Draft'}
-            </Text>
+              <Text
+                style={[
+                  Typography.label,
+                  {
+                    fontSize: 11,
+                    color: 
+                      status === 'Completed' ? Colors.success : 
+                      status === 'Active' ? Colors.secondary : 
+                      '#6B7280',
+                  }
+                ]}
+              >
+                {(status ?? 'Draft').toUpperCase()}
+              </Text>
+            </View>
+            <TouchableOpacity 
+              onPress={(e) => {
+                e.stopPropagation();
+                onDelete(id);
+              }}
+              style={{ padding: 4 }}
+            >
+              <Trash2 size={18} color={Colors.destructive} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity 
-            onPress={(e) => {
-              e.stopPropagation();
-              onDelete(id);
-            }}
-            style={{ padding: 4 }}
-          >
-            <Trash2 size={18} color="#DC2626" />
-          </TouchableOpacity>
         </View>
-      </View>
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Calendar size={14} color="#6B7280" />
-          <Text style={{ fontSize: 12, color: '#6B7280' }}>{date}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Calendar size={14} color="#6B7280" />
+            <Text style={[Typography.bodyText, { fontSize: 12, color: '#6B7280' }]}>{date}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Users size={14} color="#6B7280" />
+            <Text style={[Typography.bodyText, { fontSize: 12, color: '#6B7280' }]}>{portions ?? 0} Portions</Text>
+          </View>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Users size={14} color="#6B7280" />
-          <Text style={{ fontSize: 12, color: '#6B7280' }}>{portions ?? 0} Portions</Text>
-        </View>
-      </View>
 
-      <View
-        style={{
-          borderTopWidth: 1,
-          borderTopColor: '#F3F4F6',
-          marginTop: 12,
-          paddingTop: 12,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <Text style={{ fontSize: 13, fontWeight: '500', color: '#1B4332' }}>
-          Generate Grocery List
-        </Text>
-        <ChevronRight size={16} color="#1B4332" />
-      </View>
-    </TouchableOpacity>
+        <View
+          style={{
+            borderTopWidth: 1,
+            borderTopColor: '#F3F4F6',
+            marginTop: 12,
+            paddingTop: 12,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Text style={[Typography.label, { fontSize: 13, color: Colors.primary }]}>
+            Generate Grocery List
+          </Text>
+          <ChevronRight size={16} color={Colors.primary} />
+        </View>
+      </TouchableOpacity>
+    </FadeInView>
   );
 };
 
@@ -128,9 +146,9 @@ export default function MenusScreen() {
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Menus</Text>
-          <TouchableOpacity style={styles.headerButton} onPress={handleAddMenu}>
-            <Plus size={20} color="#FFFFFF" />
-          </TouchableOpacity>
+          <AnimatedButton style={styles.headerButton} onPress={handleAddMenu}>
+            <Plus size={20} color={Colors.surface} />
+          </AnimatedButton>
         </View>
       </View>
 
@@ -142,29 +160,29 @@ export default function MenusScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View
+        <FadeInView
           style={{
-            backgroundColor: '#F8F5F0',
+            backgroundColor: Colors.background,
             borderRadius: 12,
             padding: 16,
             marginBottom: 20,
             borderWidth: 1,
-            borderColor: '#D4A373',
+            borderColor: Colors.border,
             flexDirection: 'row',
             alignItems: 'center',
             gap: 12,
           }}
         >
-          <ClipboardList size={24} color="#1B4332" />
+          <ClipboardList size={24} color={Colors.primary} />
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>
+            <Text style={[Typography.label, { fontSize: 14, color: Colors.text }]}>
               Upcoming Production
             </Text>
-            <Text style={{ fontSize: 12, color: '#1B4332', opacity: 0.8 }}>
+            <Text style={[Typography.bodyText, { fontSize: 12, color: Colors.primary, opacity: 0.8 }]}>
               {menus.length} menus require attention this week
             </Text>
           </View>
-        </View>
+        </FadeInView>
 
         {menus.map((menu) => (
           <MenuCard 
@@ -182,18 +200,18 @@ export default function MenusScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F8F5F0',
+    backgroundColor: Colors.background,
     flex: 1,
   },
   header: {
-    backgroundColor: '#FFFFFF',
-    borderBottomColor: '#D4A373',
+    backgroundColor: Colors.surface,
+    borderBottomColor: Colors.border,
     borderBottomWidth: 1,
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
   headerButton: {
-    backgroundColor: '#1B4332',
+    backgroundColor: Colors.primary,
     borderRadius: 8,
     padding: 8,
   },
@@ -209,8 +227,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   title: {
-    color: '#1F2937',
-    fontSize: 24,
-    fontWeight: '600',
+    ...Typography.screenTitle,
+    color: Colors.text,
   },
 });

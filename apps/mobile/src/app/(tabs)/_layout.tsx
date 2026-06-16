@@ -6,36 +6,44 @@ import {
   Package,
   Utensils,
 } from 'lucide-react-native';
+import { Colors } from '@/theme/colors';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#1B4332',
-        tabBarInactiveTintColor: '#6B7280',
+        tabBarActiveTintColor: '#FDFCFB', // Ivory Active
+        tabBarInactiveTintColor: 'rgba(212, 163, 115, 0.7)', // Warm Gold Inactive
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: 12,
           fontWeight: '600',
-          marginTop: 2,
+          marginBottom: 4,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 4,
         },
         tabBarStyle: {
-          backgroundColor: '#F8F5F0',
-          borderTopColor: '#D4A373',
-          borderTopWidth: 1,
-          bottom: 10,
-          height: 80,
-          paddingBottom: 4,
-          paddingTop: 2,
+          backgroundColor: 'rgba(15, 26, 21, 0.95)', // Deeper Forest Glass
           position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 88,
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(212, 163, 115, 0.1)',
+          elevation: 0,
+          paddingBottom: 24,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
-          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+          title: 'Home',
+          tabBarIcon: ({ color }) => (
+            <Home color={color} size={26} />
+          ),
         }}
       />
 
@@ -43,15 +51,19 @@ export default function TabLayout() {
         name="recipes"
         options={{
           title: 'Recipes',
-          tabBarIcon: ({ color, size }) => <BookOpen color={color} size={size} />,
+          tabBarIcon: ({ color }) => (
+            <BookOpen color={color} size={26} />
+          ),
         }}
       />
 
       <Tabs.Screen
         name="inventory"
         options={{
-          title: 'Inventory',
-          tabBarIcon: ({ color, size }) => <Package color={color} size={size} />,
+          title: 'Stock',
+          tabBarIcon: ({ color }) => (
+            <Package color={color} size={26} />
+          ),
         }}
       />
 
@@ -59,8 +71,8 @@ export default function TabLayout() {
         name="menus"
         options={{
           title: 'Menus',
-          tabBarIcon: ({ color, size }) => (
-            <ClipboardList color={color} size={size} />
+          tabBarIcon: ({ color }) => (
+            <ClipboardList color={color} size={26} />
           ),
         }}
       />
@@ -68,8 +80,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="ingredients"
         options={{
-          title: 'Ingredients',
-          tabBarIcon: ({ color, size }) => <Utensils color={color} size={size} />,
+          title: 'Items',
+          tabBarIcon: ({ color }) => (
+            <Utensils color={color} size={26} />
+          ),
         }}
       />
     </Tabs>

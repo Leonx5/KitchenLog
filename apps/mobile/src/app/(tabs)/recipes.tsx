@@ -13,6 +13,9 @@ import {
   getRecipes,
   updateRecipe,
 } from '@/utils/database';
+import { Colors } from '@/theme/colors';
+import { Typography } from '@/theme/typography';
+import { AnimatedButton, FadeInView } from '@/components/AnimatedWrappers';
 
 type Recipe = {
   id: number;
@@ -57,32 +60,32 @@ export default function RecipesScreen() {
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <View>
-          <TouchableOpacity style={styles.addButton} onPress={handleAddRecipe}>
+          <AnimatedButton style={styles.addButton} onPress={handleAddRecipe}>
             <Text style={styles.buttonText}>Add Recipe</Text>
-          </TouchableOpacity>
+          </AnimatedButton>
 
           {recipes.map((recipe) => (
-            <View key={recipe.id} style={styles.card}>
+            <FadeInView key={recipe.id} style={styles.card} duration={200}>
               <Text style={styles.name}>{recipe.name}</Text>
               <Text style={styles.detail}>Category: {recipe.category}</Text>
               <Text style={styles.detail}>Portions: {recipe.portions}</Text>
 
               <View style={styles.actions}>
-                <TouchableOpacity
+                <AnimatedButton
                   style={styles.editButton}
                   onPress={() => handleEditRecipe(recipe.id)}
                 >
                   <Text style={styles.buttonText}>Edit</Text>
-                </TouchableOpacity>
+                </AnimatedButton>
 
-                <TouchableOpacity
+                <AnimatedButton
                   style={styles.deleteButton}
                   onPress={() => handleDeleteRecipe(recipe.id)}
                 >
                   <Text style={styles.buttonText}>Delete</Text>
-                </TouchableOpacity>
+                </AnimatedButton>
               </View>
-            </View>
+            </FadeInView>
           ))}
         </View>
       </ScrollView>
@@ -96,26 +99,26 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   addButton: {
-    backgroundColor: '#1B4332',
+    backgroundColor: Colors.primary,
     borderRadius: 8,
     marginBottom: 16,
     padding: 12,
   },
   buttonText: {
+    ...Typography.buttonText,
     color: '#fff',
-    fontWeight: '700',
     textAlign: 'center',
   },
   card: {
-    backgroundColor: '#fff',
-    borderColor: '#D4A373',
+    backgroundColor: Colors.surface,
+    borderColor: Colors.border,
     borderRadius: 10,
     borderWidth: 1,
     marginBottom: 12,
     padding: 14,
   },
   container: {
-    backgroundColor: '#F8F5F0',
+    backgroundColor: Colors.background,
     flex: 1,
   },
   content: {
@@ -123,41 +126,40 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   deleteButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: Colors.destructive,
     borderRadius: 8,
     flex: 1,
     marginLeft: 10,
     padding: 10,
   },
   detail: {
+    ...Typography.bodyText,
     color: '#4B5563',
     marginTop: 4,
   },
   editButton: {
-    backgroundColor: '#2D6A4F',
+    backgroundColor: Colors.secondary,
     borderRadius: 8,
     flex: 1,
     padding: 10,
   },
   header: {
-    backgroundColor: '#FFFFFF',
-    borderBottomColor: '#D4A373',
+    backgroundColor: Colors.surface,
+    borderBottomColor: Colors.border,
     borderBottomWidth: 1,
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
   name: {
-    color: '#1F2937',
-    fontSize: 18,
-    fontWeight: '700',
+    ...Typography.cardTitle,
+    color: Colors.text,
     marginBottom: 4,
   },
   scroll: {
     flex: 1,
   },
   title: {
-    color: '#1F2937',
-    fontSize: 24,
-    fontWeight: '600',
+    ...Typography.screenTitle,
+    color: Colors.text,
   },
 });

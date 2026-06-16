@@ -31,6 +31,8 @@ export type Menu = {
   id: number;
   name: string;
   event_date: string | null;
+  status: string;
+  completed_at: string | null;
 };
 
 type CountRow = {
@@ -54,6 +56,17 @@ export function initializeDatabase() {
       minimum_quantity REAL DEFAULT 0
     );
 
+    CREATE TABLE IF NOT EXISTS inventory_transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ingredient_id INTEGER,
+      menu_id INTEGER,
+      quantity REAL,
+      transaction_type TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(ingredient_id) REFERENCES ingredients(id),
+      FOREIGN KEY(menu_id) REFERENCES menus(id)
+    );
+
     CREATE TABLE IF NOT EXISTS recipes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
@@ -70,7 +83,9 @@ export function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS menus (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      event_date TEXT
+      event_date TEXT,
+      status TEXT DEFAULT 'Draft',
+      completed_at TEXT
     );
 
     CREATE TABLE IF NOT EXISTS menu_recipes (
@@ -79,6 +94,14 @@ export function initializeDatabase() {
       servings INTEGER DEFAULT 1
     );
   `);
+
+  // Migrations for existing tables
+  try {
+    db.execSync(`ALTER TABLE menus ADD COLUMN status TEXT DEFAULT 'Draft';`);
+  } catch (e) { /* column might already exist */ }
+  try {
+    db.execSync(`ALTER TABLE menus ADD COLUMN completed_at TEXT;`);
+  } catch (e) { /* column might already exist */ }
 }
 
 export function getIngredients() {
@@ -190,6 +213,44 @@ export function deleteRecipe(id: number) {
   );
 }
 
+export function getRecipe(id: number) {
+  return db.getFirstSync<Recipe>(
+    `SELECT * FROM recipes WHERE id = ?`,
+    [id]
+  );
+}
+
+export function getRecipeIngredients(recipeId: number) {
+  return db.getAllSync<{
+    ingredient_id: number;
+    name: string;
+    quantity: number;
+    unit: string | null;
+  }>(
+    `SELECT ri.ingredient_id, i.name, ri.quantity, i.unit
+     FROM recipe_ingredients ri
+     JOIN ingredients i ON i.id = ri.ingredient_id
+     WHERE ri.recipe_id = ?`,
+    [recipeId]
+  );
+}
+
+export function addIngredientToRecipe(recipeId: number, ingredientId: number, quantity: number) {
+  db.runSync(
+    `INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity)
+     VALUES (?, ?, ?)`,
+    [recipeId, ingredientId, quantity]
+  );
+}
+
+export function removeIngredientFromRecipe(recipeId: number, ingredientId: number) {
+  db.runSync(
+    `DELETE FROM recipe_ingredients
+     WHERE recipe_id = ? AND ingredient_id = ?`,
+    [recipeId, ingredientId]
+  );
+}
+
 export function getInventory() {
   return db.getAllSync<InventoryItem>(`
     SELECT
@@ -205,6 +266,31 @@ export function getInventory() {
       ON ingredients.id = inventory.ingredient_id
     ORDER BY ingredients.name
   `);
+}
+
+export function getInventoryHistory() {
+  return db.getAllSync<{
+    id: number;
+    ingredient_name: string;
+    menu_name: string | null;
+    quantity: number;
+    transaction_type: string;
+    created_at: string;
+    unit: string | null;
+  }>(
+    `SELECT 
+      it.id,
+      i.name as ingredient_name,
+      m.name as menu_name,
+      it.quantity,
+      it.transaction_type,
+      it.created_at,
+      i.unit
+     FROM inventory_transactions it
+     JOIN ingredients i ON i.id = it.ingredient_id
+     LEFT JOIN menus m ON m.id = it.menu_id
+     ORDER BY it.created_at DESC`
+  );
 }
 
 export function addInventoryItem(
@@ -261,4 +347,204 @@ export function updateMenu(id: number, name: string, eventDate: string) {
      WHERE id = ?`,
     [name, eventDate, id]
   );
+}
+
+export function getMenu(id: number) {
+  return db.getFirstSync<Menu>(
+    `SELECT * FROM menus WHERE id = ?`,
+    [id]
+  );
+}
+
+export function getMenuRecipes(menuId: number) {
+  return db.getAllSync<{
+    recipe_id: number;
+    name: string;
+    servings: number;
+  }>(
+    `SELECT mr.recipe_id, r.name, mr.servings
+     FROM menu_recipes mr
+     JOIN recipes r ON r.id = mr.recipe_id
+     WHERE mr.menu_id = ?`,
+    [menuId]
+  );
+}
+
+export function addRecipeToMenu(menuId: number, recipeId: number, servings: number) {
+  db.runSync(
+    `INSERT INTO menu_recipes (menu_id, recipe_id, servings)
+     VALUES (?, ?, ?)`,
+    [menuId, recipeId, servings]
+  );
+}
+
+export function removeRecipeFromMenu(menuId: number, recipeId: number) {
+  db.runSync(
+    `DELETE FROM menu_recipes
+     WHERE menu_id = ? AND recipe_id = ?`,
+    [menuId, recipeId]
+  );
+}
+
+export function getMenuShoppingList(menuId: number) {
+  return db.getAllSync<{
+    ingredient_id: number;
+    name: string;
+    unit: string | null;
+    total_quantity: number;
+  }>(
+    `SELECT 
+      i.id as ingredient_id,
+      i.name,
+      i.unit,
+      SUM((mr.servings * 1.0 / r.portions) * ri.quantity) as total_quantity
+     FROM menu_recipes mr
+     JOIN recipes r ON r.id = mr.recipe_id
+     JOIN recipe_ingredients ri ON ri.recipe_id = r.id
+     JOIN ingredients i ON i.id = ri.ingredient_id
+     WHERE mr.menu_id = ?
+     GROUP BY i.id
+     ORDER BY i.name ASC`,
+    [menuId]
+  );
+}
+
+export function getDashboardActiveMenuCount() {
+  const result = db.getFirstSync<CountRow>(
+    `SELECT COUNT(*) as count FROM menus WHERE status IN ('Active', 'Production')`
+  );
+  return result?.count ?? 0;
+}
+
+export function getInventoryHealthStats() {
+  const total = db.getFirstSync<CountRow>(
+    `SELECT COUNT(*) as count FROM inventory`
+  );
+  const healthy = db.getFirstSync<CountRow>(
+    `SELECT COUNT(*) as count FROM inventory WHERE quantity >= minimum_quantity`
+  );
+
+  const totalCount = total?.count ?? 0;
+  const healthyCount = healthy?.count ?? 0;
+  
+  if (totalCount === 0) return { percent: 100, low: 0, total: 0 };
+  
+  return {
+    percent: Math.round((healthyCount / totalCount) * 100),
+    low: totalCount - healthyCount,
+    total: totalCount
+  };
+}
+
+export function getLowStockItems(limit: number = 2) {
+  return db.getAllSync<{ name: string; status: string; type: 'critical' | 'restock' }>(
+    `SELECT 
+      i.name,
+      CASE 
+        WHEN inv.quantity <= (inv.minimum_quantity * 0.2) THEN 'LOW STOCK'
+        ELSE 'RESTOCK SOON'
+      END as status,
+      CASE 
+        WHEN inv.quantity <= (inv.minimum_quantity * 0.2) THEN 'critical'
+        ELSE 'restock'
+      END as type
+     FROM inventory inv
+     JOIN ingredients i ON i.id = inv.ingredient_id
+     WHERE inv.quantity < inv.minimum_quantity
+     LIMIT ?`,
+    [limit]
+  );
+}
+
+export function setMenuStatus(menuId: number, status: string) {
+  const currentMenu = getMenu(menuId);
+  if (!currentMenu) return;
+
+  const prevStatus = currentMenu.status;
+  
+  db.withTransactionSync(() => {
+    // 1. Update status
+    const completedAt = status === 'Completed' ? new Date().toISOString() : null;
+    db.runSync(
+      `UPDATE menus SET status = ?, completed_at = ? WHERE id = ?`,
+      [status, completedAt, menuId]
+    );
+
+    // 2. Handle inventory impact
+    // Only consume if moving TO Completed from something else
+    if (status === 'Completed' && prevStatus !== 'Completed') {
+      consumeInventoryForMenu(menuId);
+    } 
+    // Only rollback if moving FROM Completed to something else
+    else if (status !== 'Completed' && prevStatus === 'Completed') {
+      rollbackInventoryForMenu(menuId);
+    }
+  });
+}
+
+function consumeInventoryForMenu(menuId: number) {
+  // Robust check: calculate NET consumption for this menu
+  // (Total CONSUMPTION - Total ROLLBACK)
+  // If net is < 0, ingredients are already deducted.
+  const netConsumed = db.getFirstSync<{ net: number }>(
+    `SELECT COALESCE(SUM(quantity), 0) as net FROM inventory_transactions 
+     WHERE menu_id = ? AND transaction_type IN ('CONSUMPTION', 'ROLLBACK')`,
+    [menuId]
+  );
+
+  if (netConsumed && netConsumed.net < 0) {
+    console.log(`Menu ${menuId} already has active consumption records. Skipping.`);
+    return;
+  }
+
+  const items = getMenuShoppingList(menuId);
+  
+  for (const item of items) {
+    if (item.total_quantity <= 0) continue;
+
+    // Record transaction (Negative for deduction)
+    db.runSync(
+      `INSERT INTO inventory_transactions (ingredient_id, menu_id, quantity, transaction_type)
+       VALUES (?, ?, ?, 'CONSUMPTION')`,
+      [item.ingredient_id, menuId, -item.total_quantity]
+    );
+
+    // Update snapshot
+    db.runSync(
+      `UPDATE inventory SET quantity = quantity - ? WHERE ingredient_id = ?`,
+      [item.total_quantity, item.ingredient_id]
+    );
+  }
+}
+
+function rollbackInventoryForMenu(menuId: number) {
+  // Robust check: Only rollback if there is something active to rollback
+  // Find all individual consumption entries that haven't been offset yet
+  // For simplicity in this logic, we query all entries and calculate the inverse of the NET.
+  
+  const activeTransactions = db.getAllSync<{ ingredient_id: number, net_qty: number }>(
+    `SELECT ingredient_id, SUM(quantity) as net_qty 
+     FROM inventory_transactions 
+     WHERE menu_id = ? AND transaction_type IN ('CONSUMPTION', 'ROLLBACK')
+     GROUP BY ingredient_id
+     HAVING net_qty < 0`,
+    [menuId]
+  );
+
+  for (const tx of activeTransactions) {
+    const rollbackQty = Math.abs(tx.net_qty);
+
+    // Record rollback transaction (Positive for restoration)
+    db.runSync(
+      `INSERT INTO inventory_transactions (ingredient_id, menu_id, quantity, transaction_type)
+       VALUES (?, ?, ?, 'ROLLBACK')`,
+      [tx.ingredient_id, menuId, rollbackQty]
+    );
+
+    // Update snapshot
+    db.runSync(
+      `UPDATE inventory SET quantity = quantity + ? WHERE ingredient_id = ?`,
+      [rollbackQty, tx.ingredient_id]
+    );
+  }
 }
