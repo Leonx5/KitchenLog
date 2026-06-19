@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { TrendingUp, ClipboardList, Plus, AlertCircle, Clock, Utensils, Package, ChevronRight, Activity, CheckCircle2, Bell, Leaf } from 'lucide-react-native';
 import { Colors } from '@/theme/colors';
 import { Typography } from '@/theme/typography';
@@ -348,6 +348,7 @@ function ActivityEntry({
 
 export default function Dashboard() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   
   const [stats, setStats] = useState({
     activeMenus: 0,
@@ -444,6 +445,19 @@ export default function Dashboard() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        <TouchableOpacity
+          onPress={() => router.push('/test')}
+          style={{
+            backgroundColor: '#333',
+            padding: 12,
+            borderRadius: 8,
+            marginBottom: 16,
+            alignItems: 'center',
+          }}
+        >
+          <Text style={{ color: 'white', fontWeight: '600' }}>TEST SCREEN</Text>
+        </TouchableOpacity>
+
         {/* Operations Hub Metrics */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>

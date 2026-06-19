@@ -242,6 +242,10 @@ export default function IngredientsScreen() {
         ) : (
           <View style={styles.formCard}>
             <Text>FORM TEST</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="TEST INPUT"
+            />
           </View>
         )}
       </View>
