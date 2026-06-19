@@ -5,6 +5,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -27,6 +28,12 @@ type Recipe = {
 export default function RecipesScreen() {
   const insets = useSafeAreaInsets();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [isCreating, setIsCreating] = useState(false);
+  const [draft, setDraft] = useState({
+    name: '',
+    category: '',
+    portions: '1',
+  });
 
   const loadRecipes = () => {
     const data = getRecipes();
@@ -37,9 +44,22 @@ export default function RecipesScreen() {
     loadRecipes();
   }, []);
 
-  const handleAddRecipe = () => {
-    addRecipe('New Recipe', 'Main Course', 4);
-    loadRecipes();
+  const handleSaveRecipe = () => {
+    if (draft.name.trim().length < 3) return;
+    
+    try {
+      addRecipe(
+        draft.name.trim(), 
+        draft.category.trim() || 'General', 
+        parseInt(draft.portions) || 1
+      );
+      
+      setDraft({ name: '', category: '', portions: '1' });
+      setIsCreating(false);
+      loadRecipes();
+    } catch (e) {
+      console.error('FULL ERROR', JSON.stringify(e));
+    }
   };
 
   const handleDeleteRecipe = (id: number) => {
@@ -52,6 +72,8 @@ export default function RecipesScreen() {
     loadRecipes();
   };
 
+  const isValid = draft.name.trim().length >= 3;
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
@@ -60,9 +82,15 @@ export default function RecipesScreen() {
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <View>
-          <AnimatedButton style={styles.addButton} onPress={handleAddRecipe}>
-            <Text style={styles.buttonText}>Add Recipe</Text>
-          </AnimatedButton>
+          {!isCreating ? (
+            <AnimatedButton style={styles.addButton} onPress={() => setIsCreating(true)}>
+              <Text style={styles.buttonText}>Add Recipe</Text>
+            </AnimatedButton>
+          ) : (
+            <View style={styles.formCard}>
+              <Text>FORM TEST</Text>
+            </View>
+          )}
 
           {recipes.map((recipe) => (
             <FadeInView key={recipe.id} style={styles.card} duration={200}>
@@ -116,6 +144,45 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 12,
     padding: 14,
+  },
+  formCard: {
+    backgroundColor: Colors.surface,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 20,
+  },
+  formTitle: {
+    fontSize: 11,
+    color: Colors.primary,
+    letterSpacing: 1,
+    marginBottom: 16,
+  },
+  input: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    marginBottom: 12,
+    color: Colors.text,
+    fontFamily: Typography.body.fontFamily,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  formActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 8,
+  },
+  formButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
   container: {
     backgroundColor: Colors.background,

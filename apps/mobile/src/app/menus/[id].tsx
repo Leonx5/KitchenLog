@@ -20,7 +20,11 @@ import {
   removeRecipeFromMenu,
   getMenuShoppingList,
   setMenuStatus,
+  saveMenuAsTemplate,
 } from '@/utils/database';
+import { Colors } from '@/theme/colors';
+import { Typography } from '@/theme/typography';
+import { Copy } from 'lucide-react-native';
 
 export default function MenuDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -47,6 +51,11 @@ export default function MenuDetailScreen() {
   useEffect(() => {
     loadData();
   }, [menuId]);
+
+  const handleSaveAsTemplate = () => {
+    saveMenuAsTemplate(menuId, `${menu.name} Template`, `Created from event on ${menu.event_date}`);
+    alert('Menu saved as template!');
+  };
 
   const handleStatusTransition = () => {
     const statusFlow = ['Draft', 'Active', 'Completed'];
@@ -135,23 +144,31 @@ export default function MenuDetailScreen() {
             </Text>
           </View>
 
-          {menu.status === 'Completed' ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <TouchableOpacity 
-              onPress={handleReopen}
-              style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#D4A373', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
+              onPress={handleSaveAsTemplate}
+              style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#D4A373', borderRadius: 8, padding: 8 }}
             >
-              <Text style={{ color: '#1B4332', fontSize: 12, fontWeight: '600' }}>Re-open</Text>
+              <Copy size={18} color="#1B4332" />
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity 
-              onPress={handleStatusTransition}
-              style={{ backgroundColor: '#1B4332', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
-            >
-              <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>
-                {menu.status === 'Active' ? 'Complete' : 'Next Stage'}
-              </Text>
-            </TouchableOpacity>
-          )}
+            {menu.status === 'Completed' ? (
+              <TouchableOpacity 
+                onPress={handleReopen}
+                style={{ backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#D4A373', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
+              >
+                <Text style={{ color: '#1B4332', fontSize: 12, fontWeight: '600' }}>Re-open</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                onPress={handleStatusTransition}
+                style={{ backgroundColor: '#1B4332', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
+              >
+                <Text style={{ color: 'white', fontSize: 12, fontWeight: '600' }}>
+                  {menu.status === 'Active' ? 'Complete' : 'Next Stage'}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Tab switcher - Ghost Style */}

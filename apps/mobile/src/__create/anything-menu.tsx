@@ -55,6 +55,8 @@ const isAnythingApp =
   Platform.OS !== "web" &&
   process.env.EXPO_PUBLIC_IS_ANYTHING_APP === JSON.stringify(true);
 
+const ENABLE_ANYTHING_MENU = false;
+
 const AnythingLauncher = isAnythingApp
   ? requireNativeModule<AnythingLauncherModule>("AnythingLauncherModule")
   : null;
@@ -374,6 +376,21 @@ const AnythingMenu = isAnythingApp
 
     if (state.isLoading) {
       return null
+    }
+
+    if (!ENABLE_ANYTHING_MENU) {
+      return (
+        <View style={styles.container}>
+          {!state.showWebView ? (
+            children
+          ) : (
+            <WebView
+              source={{ uri: getWebAppUrl() }}
+              style={[styles.webView, { paddingTop: insets.top }]}
+            />
+          )}
+        </View>
+      );
     }
 
     return (

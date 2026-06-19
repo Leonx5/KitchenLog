@@ -8,6 +8,7 @@ export type Ingredient = {
   category: string | null;
   unit: string | null;
   cost_per_unit: number;
+  aliases?: string; // JSON string of aliases
 };
 
 export type Recipe = {
@@ -35,11 +36,31 @@ export type Menu = {
   completed_at: string | null;
 };
 
+export type IngredientAlias = {
+  id: number;
+  ingredient_id: number;
+  alias: string;
+};
+
+export type MenuTemplate = {
+  id: number;
+  name: string;
+  description: string | null;
+};
+
+export type MenuTemplateRecipe = {
+  template_id: number;
+  recipe_id: number;
+  servings: number;
+};
+
 type CountRow = {
   count: number;
 };
 
 export function initializeDatabase() {
+  db.execSync('PRAGMA foreign_keys = ON;');
+  
   db.execSync(`
     CREATE TABLE IF NOT EXISTS ingredients (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,9 +72,10 @@ export function initializeDatabase() {
 
     CREATE TABLE IF NOT EXISTS inventory (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      ingredient_id INTEGER,
+      ingredient_id INTEGER UNIQUE,
       quantity REAL DEFAULT 0,
-      minimum_quantity REAL DEFAULT 0
+      minimum_quantity REAL DEFAULT 0,
+      FOREIGN KEY(ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS inventory_transactions (
@@ -63,8 +85,8 @@ export function initializeDatabase() {
       quantity REAL,
       transaction_type TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(ingredient_id) REFERENCES ingredients(id),
-      FOREIGN KEY(menu_id) REFERENCES menus(id)
+      FOREIGN KEY(ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE,
+      FOREIGN KEY(menu_id) REFERENCES menus(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS recipes (
@@ -77,7 +99,9 @@ export function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS recipe_ingredients (
       recipe_id INTEGER,
       ingredient_id INTEGER,
-      quantity REAL
+      quantity REAL,
+      FOREIGN KEY(recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+      FOREIGN KEY(ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS menus (
@@ -91,8 +115,34 @@ export function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS menu_recipes (
       menu_id INTEGER,
       recipe_id INTEGER,
-      servings INTEGER DEFAULT 1
+      servings INTEGER DEFAULT 1,
+      FOREIGN KEY(menu_id) REFERENCES menus(id) ON DELETE CASCADE,
+      FOREIGN KEY(recipe_id) REFERENCES recipes(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS ingredient_aliases (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ingredient_id INTEGER,
+      alias TEXT NOT NULL,
+      FOREIGN KEY(ingredient_id) REFERENCES ingredients(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS menu_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS menu_template_recipes (
+      template_id INTEGER,
+      recipe_id INTEGER,
+      servings INTEGER DEFAULT 1,
+      FOREIGN KEY(template_id) REFERENCES menu_templates(id) ON DELETE CASCADE,
+      FOREIGN KEY(recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+      PRIMARY KEY (template_id, recipe_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_alias_ingredient_id ON ingredient_aliases(ingredient_id);
   `);
 
   // Migrations for existing tables
@@ -106,9 +156,15 @@ export function initializeDatabase() {
 
 export function getIngredients() {
   return db.getAllSync<Ingredient>(`
-    SELECT *
-    FROM ingredients
-    ORDER BY name
+    SELECT 
+      i.*,
+      (
+        SELECT json_group_array(json_object('id', id, 'alias', alias))
+        FROM ingredient_aliases
+        WHERE ingredient_id = i.id
+      ) as aliases
+    FROM ingredients i
+    ORDER BY i.name
   `);
 }
 
@@ -118,12 +174,20 @@ export function addIngredient(
   unit: string,
   costPerUnit: number
 ) {
-  db.runSync(
-    `INSERT INTO ingredients
-      (name, category, unit, cost_per_unit)
-     VALUES (?, ?, ?, ?)`,
-    [name, category, unit, costPerUnit]
-  );
+  console.log('addIngredient before runSync', { name, category, unit, costPerUnit });
+  try {
+    const result = db.runSync(
+      `INSERT INTO ingredients
+        (name, category, unit, cost_per_unit)
+       VALUES (?, ?, ?, ?)`,
+      [name, category, unit, costPerUnit]
+    );
+    console.log('addIngredient after runSync success', result);
+    return result;
+  } catch (e) {
+    console.error('addIngredient runSync error', e);
+    throw e;
+  }
 }
 
 export function seedIngredients() {
@@ -181,12 +245,19 @@ export function addRecipe(
   category: string,
   portions: number
 ) {
-  db.runSync(
-    `INSERT INTO recipes
-      (name, category, portions)
-     VALUES (?, ?, ?)`,
-    [name, category, portions]
-  );
+  console.log('addRecipe before runSync', { name, category, portions });
+  try {
+    const result = db.runSync(
+      `INSERT INTO recipes
+        (name, category, portions)
+       VALUES (?, ?, ?)`,
+      [name, category, portions]
+    );
+    console.log('addRecipe after runSync success', result);
+  } catch (e) {
+    console.error('addRecipe runSync error', e);
+    throw e;
+  }
 }
 
 export function updateRecipe(
@@ -298,12 +369,19 @@ export function addInventoryItem(
   quantity: number,
   minimumQuantity: number
 ) {
-  db.runSync(
-    `INSERT INTO inventory
-      (ingredient_id, quantity, minimum_quantity)
-     VALUES (?, ?, ?)`,
-    [ingredientId, quantity, minimumQuantity]
-  );
+  console.log('addInventoryItem before runSync', { ingredientId, quantity, minimumQuantity });
+  try {
+    const result = db.runSync(
+      `INSERT INTO inventory
+        (ingredient_id, quantity, minimum_quantity)
+       VALUES (?, ?, ?)`,
+      [ingredientId, quantity, minimumQuantity]
+    );
+    console.log('addInventoryItem after runSync success', result);
+  } catch (e) {
+    console.error('addInventoryItem runSync error', e);
+    throw e;
+  }
 }
 
 export function updateInventoryQuantity(id: number, quantity: number) {
@@ -324,11 +402,18 @@ export function getMenus() {
 }
 
 export function addMenu(name: string, eventDate: string) {
-  db.runSync(
-    `INSERT INTO menus (name, event_date)
-     VALUES (?, ?)`,
-    [name, eventDate]
-  );
+  console.log('addMenu before runSync', { name, eventDate });
+  try {
+    const result = db.runSync(
+      `INSERT INTO menus (name, event_date)
+       VALUES (?, ?)`,
+      [name, eventDate]
+    );
+    console.log('addMenu after runSync success', result);
+  } catch (e) {
+    console.error('addMenu runSync error', e);
+    throw e;
+  }
 }
 
 export function deleteMenu(id: number) {
@@ -547,4 +632,99 @@ function rollbackInventoryForMenu(menuId: number) {
       [rollbackQty, tx.ingredient_id]
     );
   }
+}
+
+// --- Phase 1: Knowledge Platform Extensions ---
+
+// Ingredient Aliases
+export function getIngredientAliases(ingredientId: number) {
+  return db.getAllSync<IngredientAlias>(
+    `SELECT * FROM ingredient_aliases WHERE ingredient_id = ?`,
+    [ingredientId]
+  );
+}
+
+export function addIngredientAlias(ingredientId: number, alias: string) {
+  db.runSync(
+    `INSERT INTO ingredient_aliases (ingredient_id, alias) VALUES (?, ?)`,
+    [ingredientId, alias]
+  );
+}
+
+export function deleteIngredientAlias(id: number) {
+  db.runSync(`DELETE FROM ingredient_aliases WHERE id = ?`, [id]);
+}
+
+// Menu Templates
+export function getMenuTemplates() {
+  return db.getAllSync<MenuTemplate>(`SELECT * FROM menu_templates ORDER BY name`);
+}
+
+export function addMenuTemplate(name: string, description: string | null) {
+  return db.runSync(
+    `INSERT INTO menu_templates (name, description) VALUES (?, ?)`,
+    [name, description]
+  );
+}
+
+export function deleteMenuTemplate(id: number) {
+  db.runSync(`DELETE FROM menu_templates WHERE id = ?`, [id]);
+}
+
+// Menu Template Recipes
+export function getMenuTemplateRecipes(templateId: number) {
+  return db.getAllSync<{
+    recipe_id: number;
+    name: string;
+    servings: number;
+  }>(
+    `SELECT mtr.recipe_id, r.name, mtr.servings
+     FROM menu_template_recipes mtr
+     JOIN recipes r ON r.id = mtr.recipe_id
+     WHERE mtr.template_id = ?`,
+    [templateId]
+  );
+}
+
+export function addRecipeToMenuTemplate(templateId: number, recipeId: number, servings: number) {
+  db.runSync(
+    `INSERT INTO menu_template_recipes (template_id, recipe_id, servings)
+     VALUES (?, ?, ?)`,
+    [templateId, recipeId, servings]
+  );
+}
+
+export function removeRecipeFromMenuTemplate(templateId: number, recipeId: number) {
+  db.runSync(
+    `DELETE FROM menu_template_recipes
+     WHERE template_id = ? AND recipe_id = ?`,
+    [templateId, recipeId]
+  );
+}
+
+export function createMenuFromTemplate(templateId: number, menuName: string, eventDate: string) {
+  db.withTransactionSync(() => {
+    const result = db.runSync(
+      `INSERT INTO menus (name, event_date) VALUES (?, ?)`,
+      [menuName, eventDate]
+    );
+    const menuId = result.lastInsertRowId;
+
+    const templateRecipes = getMenuTemplateRecipes(templateId);
+    for (const tr of templateRecipes) {
+      addRecipeToMenu(menuId, tr.recipe_id, tr.servings);
+    }
+  });
+}
+
+export function saveMenuAsTemplate(menuId: number, templateName: string, description: string | null) {
+  db.withTransactionSync(() => {
+    const result = addMenuTemplate(templateName, description);
+    const templateId = result.lastInsertRowId;
+
+    const menuRecipes = getMenuRecipes(menuId);
+    for (const mr of menuRecipes) {
+      addRecipeToMenuTemplate(templateId, mr.recipe_id, mr.servings);
+    }
+  });
 }

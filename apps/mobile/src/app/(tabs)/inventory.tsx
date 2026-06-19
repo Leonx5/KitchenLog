@@ -1,18 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Package, AlertTriangle, ArrowDown, ArrowUp } from 'lucide-react-native';
+import { Package, AlertTriangle, ArrowDown, ArrowUp, Clock, ChevronRight } from 'lucide-react-native';
 import {
   addInventoryItem,
   getIngredients,
   getInventory,
   getInventoryHistory,
   updateInventoryQuantity,
+  Ingredient
 } from '@/utils/database';
 import { Colors } from '@/theme/colors';
 import { Typography } from '@/theme/typography';
 import { AnimatedButton, FadeInView } from '@/components/AnimatedWrappers';
-import { Clock } from 'lucide-react-native';
 
 type InventoryRow = {
   id: number;
@@ -212,29 +212,48 @@ export default function InventoryScreen() {
   const insets = useSafeAreaInsets();
   const [inventory, setInventory] = useState<InventoryRow[]>([]);
   const [history, setHistory] = useState<HistoryRow[]>([]);
+  const [availableIngredients, setAvailableIngredients] = useState<Ingredient[]>([]);
   const [activeTab, setActiveTab] = useState('stock'); // stock or history
+  const [isCreating, setIsCreating] = useState(false);
+  const [draft, setDraft] = useState({
+    ingredientId: null as number | null,
+    quantity: '',
+    minQuantity: '',
+  });
 
   const loadData = () => {
     const invData = getInventory();
     const histData = getInventoryHistory();
+    const allIngredients = getIngredients();
+    
     setInventory(Array.isArray(invData) ? invData : []);
     setHistory(Array.isArray(histData) ? histData : []);
+    
+    // Filter ingredients not already in inventory
+    const inStockIds = (invData as any[]).map(i => i.ingredient_id);
+    setAvailableIngredients(allIngredients.filter(i => !inStockIds.includes(i.id)));
   };
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const handleAddInventoryItem = () => {
-    const ingredients = getIngredients();
-    const firstIngredient = Array.isArray(ingredients) ? ingredients[0] : null;
+  const handleSaveInventoryItem = () => {
+    if (!draft.ingredientId) return;
 
-    if (!firstIngredient) {
-      return;
+    try {
+      addInventoryItem(
+        draft.ingredientId, 
+        parseFloat(draft.quantity) || 0, 
+        parseFloat(draft.minQuantity) || 0
+      );
+      
+      setDraft({ ingredientId: null, quantity: '', minQuantity: '' });
+      setIsCreating(false);
+      loadData();
+    } catch (e) {
+      console.error('FULL ERROR', JSON.stringify(e));
     }
-
-    addInventoryItem(firstIngredient.id, 10, 5);
-    loadData();
   };
 
   const handleAddStock = (item: InventoryRow) => {
@@ -251,6 +270,8 @@ export default function InventoryScreen() {
     (item) => item.quantity < item.minimum_quantity
   ).length;
 
+  const isValid = draft.ingredientId !== null;
+
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background, paddingTop: insets.top }}>
       <View
@@ -266,19 +287,24 @@ export default function InventoryScreen() {
           style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}
         >
           <Text style={[Typography.screenTitle, { color: Colors.text }]}>Inventory</Text>
-          <AnimatedButton
-            onPress={handleAddInventoryItem}
-            style={{ backgroundColor: Colors.primary, borderRadius: 8, padding: 8 }}
-          >
-            <Package size={20} color={Colors.surface} />
-          </AnimatedButton>
+          {!isCreating && activeTab === 'stock' && (
+            <AnimatedButton
+              onPress={() => setIsCreating(true)}
+              style={{ backgroundColor: Colors.primary, borderRadius: 8, padding: 8 }}
+            >
+              <Package size={20} color={Colors.surface} />
+            </AnimatedButton>
+          )}
         </View>
 
         <View style={{ flexDirection: 'row', gap: 20 }}>
           {['stock', 'history'].map((tab) => (
             <TouchableOpacity
               key={tab}
-              onPress={() => setActiveTab(tab)}
+              onPress={() => {
+                setActiveTab(tab);
+                setIsCreating(false);
+              }}
               style={{
                 paddingBottom: 8,
                 borderBottomWidth: 2,
@@ -310,19 +336,25 @@ export default function InventoryScreen() {
       >
         {activeTab === 'stock' ? (
           <>
-            <AnimatedButton
-              onPress={handleAddInventoryItem}
-              style={{
-                backgroundColor: Colors.primary,
-                borderRadius: 8,
-                padding: 12,
-                marginBottom: 16,
-              }}
-            >
-              <Text style={[{ color: Colors.surface, textAlign: 'center' }, Typography.buttonText]}>
-                Add Inventory Item
-              </Text>
-            </AnimatedButton>
+            {isCreating ? (
+              <View style={styles.formCard}>
+                <Text>FORM TEST</Text>
+              </View>
+            ) : (
+              <AnimatedButton
+                onPress={() => setIsCreating(true)}
+                style={{
+                  backgroundColor: Colors.primary,
+                  borderRadius: 8,
+                  padding: 12,
+                  marginBottom: 16,
+                }}
+              >
+                <Text style={[{ color: Colors.surface, textAlign: 'center' }, Typography.buttonText]}>
+                  Track Ingredient in Inventory
+                </Text>
+              </AnimatedButton>
+            )}
 
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
               <FadeInView
@@ -387,3 +419,134 @@ export default function InventoryScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  actions: {
+    flexDirection: 'row',
+    marginTop: 12,
+  },
+  addButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    marginBottom: 16,
+    padding: 12,
+  },
+  buttonText: {
+    ...Typography.buttonText,
+    color: '#fff',
+    textAlign: 'center',
+  },
+  card: {
+    backgroundColor: Colors.surface,
+    borderColor: Colors.border,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 12,
+    padding: 14,
+  },
+  formCard: {
+    backgroundColor: Colors.surface,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 20,
+  },
+  formTitle: {
+    fontSize: 11,
+    color: Colors.primary,
+    letterSpacing: 1,
+    marginBottom: 16,
+  },
+  labelHint: {
+    fontSize: 10,
+    color: '#94A3B8',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  pickerContainer: {
+    marginBottom: 16,
+    minHeight: 40,
+  },
+  ingChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+    marginRight: 8,
+    alignSelf: 'flex-start',
+  },
+  input: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    marginBottom: 12,
+    color: Colors.text,
+    fontFamily: Typography.body.fontFamily,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  formActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 8,
+  },
+  formButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  container: {
+    backgroundColor: Colors.background,
+    flex: 1,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 120,
+  },
+  deleteButton: {
+    backgroundColor: Colors.destructive,
+    borderRadius: 8,
+    flex: 1,
+    marginLeft: 10,
+    padding: 10,
+  },
+  detail: {
+    ...Typography.bodyText,
+    color: '#4B5563',
+    marginTop: 4,
+  },
+  editButton: {
+    backgroundColor: Colors.secondary,
+    borderRadius: 8,
+    flex: 1,
+    padding: 10,
+  },
+  header: {
+    backgroundColor: Colors.surface,
+    borderBottomColor: Colors.border,
+    borderBottomWidth: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  name: {
+    ...Typography.cardTitle,
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  scroll: {
+    flex: 1,
+  },
+  title: {
+    ...Typography.screenTitle,
+    color: Colors.text,
+  },
+});

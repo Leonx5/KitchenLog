@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus, Calendar, Users, ClipboardList, ChevronRight, Trash2 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { addMenu, deleteMenu, getMenus, Menu } from '@/utils/database';
+import { addMenu, deleteMenu, getMenus, getMenuTemplates, createMenuFromTemplate, Menu, MenuTemplate } from '@/utils/database';
 import { Colors } from '@/theme/colors';
 import { Typography } from '@/theme/typography';
 import { AnimatedButton, FadeInView } from '@/components/AnimatedWrappers';
@@ -116,24 +116,57 @@ const MenuCard = ({ id, name, type, date, portions, status, onDelete }: any) => 
 export default function MenusScreen() {
   const insets = useSafeAreaInsets();
   const [menus, setMenus] = useState<Menu[]>([]);
+  const [templates, setTemplates] = useState<MenuTemplate[]>([]);
+  const [isCreating, setIsCreating] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null);
+  const [draft, setDraft] = useState({
+    name: '',
+    date: new Date().toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    }),
+  });
 
   const loadMenus = () => {
     const data = getMenus();
     setMenus(Array.isArray(data) ? data : []);
   };
 
+  const loadTemplates = () => {
+    const data = getMenuTemplates();
+    setTemplates(Array.isArray(data) ? data : []);
+  };
+
   useEffect(() => {
     loadMenus();
+    loadTemplates();
   }, []);
 
-  const handleAddMenu = () => {
-    const today = new Date().toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-    addMenu('New Event', today);
-    loadMenus();
+  const handleSaveMenu = () => {
+    if (draft.name.trim().length < 3) return;
+    
+    try {
+      if (selectedTemplate) {
+        createMenuFromTemplate(selectedTemplate, draft.name.trim(), draft.date.trim());
+      } else {
+        addMenu(draft.name.trim(), draft.date.trim());
+      }
+      
+      setDraft({ 
+        name: '', 
+        date: new Date().toLocaleDateString('en-US', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric'
+        }) 
+      });
+      setSelectedTemplate(null);
+      setIsCreating(false);
+      loadMenus();
+    } catch (e) {
+      console.error('FULL ERROR', JSON.stringify(e));
+    }
   };
 
   const handleDeleteMenu = (id: number) => {
@@ -141,14 +174,18 @@ export default function MenusScreen() {
     loadMenus();
   };
 
+  const isValid = draft.name.trim().length >= 3;
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Menus</Text>
-          <AnimatedButton style={styles.headerButton} onPress={handleAddMenu}>
-            <Plus size={20} color={Colors.surface} />
-          </AnimatedButton>
+          {!isCreating && (
+            <AnimatedButton style={styles.headerButton} onPress={() => setIsCreating(true)}>
+              <Plus size={20} color={Colors.surface} />
+            </AnimatedButton>
+          )}
         </View>
       </View>
 
@@ -160,6 +197,12 @@ export default function MenusScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {isCreating && (
+          <View style={styles.formCard}>
+            <Text>FORM TEST</Text>
+          </View>
+        )}
+
         <FadeInView
           style={{
             backgroundColor: Colors.background,
