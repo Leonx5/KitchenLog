@@ -12,6 +12,9 @@ import {
 import {
   initializeDatabase,
   seedIngredients,
+  seedRecipes,
+  seedInventory,
+  seedMenus,
 } from '@/utils/database';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -33,6 +36,9 @@ export default function RootLayout() {
   useEffect(() => {
     initializeDatabase();
     seedIngredients();
+    seedRecipes();
+    seedInventory();
+    seedMenus();
   }, []);
 
   if (!loaded && !error) {

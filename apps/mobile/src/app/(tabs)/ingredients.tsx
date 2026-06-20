@@ -240,12 +240,8 @@ export default function IngredientsScreen() {
             <Text style={styles.buttonText}>Add Ingredient</Text>
           </TouchableOpacity>
         ) : (
-          <View style={styles.formCard}>
+          <View>
             <Text>FORM TEST</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="TEST INPUT"
-            />
           </View>
         )}
       </View>

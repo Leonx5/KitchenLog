@@ -1,27 +1,23 @@
-const { withAppBuildGradle } = require('@expo/config-plugins');
+const { withAppBuildGradle } = require('expo/config-plugins');
 
-const CPP20_FLAG = `/**
- * Enable C++20 support for react-native prefab headers
- */
-android.defaultConfig {
+function withAndroidCpp20(config) {
+  return withAppBuildGradle(config, (config) => {
+    if (config.modResults.language !== 'groovy') return config;
+
+    const cmakeBlock = `
     externalNativeBuild {
         cmake {
-            cppFlags "-std=c++20"
+            arguments "-DCMAKE_CXX_STANDARD=20"
         }
-    }
-}
-`;
+    }`;
 
-module.exports = function withAndroidCpp20(config) {
-  return withAppBuildGradle(config, (config) => {
-    if (config.modResults.language === 'groovy') {
-      if (!config.modResults.contents.includes('cppFlags "-std=c++20"')) {
-        config.modResults.contents = config.modResults.contents.replace(
-          'apply plugin: "com.facebook.react"',
-          `apply plugin: "com.facebook.react"\n${CPP20_FLAG}`
-        );
-      }
-    }
+    config.modResults.contents = config.modResults.contents.replace(
+      /(defaultConfig\s*\{)/,
+      '$1' + cmakeBlock
+    );
+
     return config;
   });
-};
+}
+
+module.exports = withAndroidCpp20;

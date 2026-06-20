@@ -23,7 +23,8 @@
         "expo-build-properties",
         {
           "android": {
-            "usesCleartextTraffic": true
+            "usesCleartextTraffic": true,
+            "cppFlags": "-std=c++20"
           }
         }
       ]

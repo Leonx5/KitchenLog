@@ -1,15 +1,15 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, Animated, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Animated, TouchableOpacity, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { TrendingUp, ClipboardList, Plus, AlertCircle, Clock, Utensils, Package, ChevronRight, Activity, CheckCircle2, Bell, Leaf } from 'lucide-react-native';
+import { TrendingUp, ClipboardList, Plus, AlertCircle, Clock, Utensils, Package, ChevronRight, Activity, CheckCircle2, Bell, Leaf, X, Info, Settings as SettingsIcon, AlertTriangle } from 'lucide-react-native';
 import { Colors } from '@/theme/colors';
 import { Typography } from '@/theme/typography';
 import { AnimatedButton, FadeInView } from '@/components/AnimatedWrappers';
 import { 
   getDashboardActiveMenuCount, 
   getInventoryHealthStats, 
-  getLowStockItems 
+  getInventoryAlertCounts 
 } from '@/utils/database';
 
 const ACTIVE_MENU_INSIGHTS = [
@@ -102,44 +102,6 @@ function RotatingInsight({ insights, textStyle }: { insights: string[]; textStyl
   );
 }
 
-function PulseIndicator({ color }: { color: string }) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const opacity = useRef(new Animated.Value(0.6)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.parallel([
-        Animated.timing(scale, {
-          toValue: 2,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 0,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, []);
-
-  return (
-    <View style={styles.pulseContainer}>
-      <Animated.View 
-        style={[
-          styles.pulseCircle, 
-          { 
-            backgroundColor: color,
-            opacity: opacity,
-            transform: [{ scale: scale }]
-          }
-        ]} 
-      />
-      <View style={[styles.pulseDot, { backgroundColor: color }]} />
-    </View>
-  );
-}
-
 function MetricCard({
   title,
   value,
@@ -167,57 +129,6 @@ function MetricCard({
         <RotatingInsight insights={insights} textStyle={styles.metricTrend} />
       </View>
     </Animated.View>
-  );
-}
-
-function StatusChip({ text, type }: { text: string; type: 'low' | 'restock' | 'critical' | 'healthy' }) {
-  const bgColor = {
-    low: 'rgba(212, 163, 115, 0.2)',
-    restock: 'rgba(212, 163, 115, 0.1)',
-    critical: 'rgba(220, 38, 38, 0.2)',
-    healthy: 'rgba(22, 163, 74, 0.2)',
-  }[type];
-  
-  const textColor = {
-    low: SOFT_SAND,
-    restock: SOFT_SAND,
-    critical: '#FF6B6B',
-    healthy: '#4ADE80',
-  }[type];
-  
-  return (
-    <View style={[styles.statusChip, { backgroundColor: bgColor }]}>
-      <Text style={[styles.statusChipText, Typography.label, { color: textColor }]}>{text}</Text>
-    </View>
-  );
-}
-
-function InventoryStatusCard({ 
-  status, 
-  item, 
-  type 
-}: { 
-  status: string; 
-  item: string; 
-  type: 'low' | 'restock' | 'critical' | 'healthy' 
-}) {
-  const showPulse = type === 'critical';
-  
-  return (
-    <View style={styles.inventoryStatusCard}>
-      <View style={styles.inventoryStatusContent}>
-        <View style={styles.statusWithIcon}>
-          {showPulse ? (
-            <PulseIndicator color="#FF6B6B" />
-          ) : (
-            <View style={[styles.staticDot, { backgroundColor: type === 'restock' ? Colors.accent : '#4ADE80' }]} />
-          )}
-          <StatusChip text={status} type={type} />
-        </View>
-        <Text style={[styles.inventoryItemName, Typography.bodyText]}>{item}</Text>
-      </View>
-      <ChevronRight size={14} color={IVORY} opacity={0.2} />
-    </View>
   );
 }
 
@@ -346,46 +257,47 @@ function ActivityEntry({
   );
 }
 
+const NOTIFICATIONS = [
+  { id: 1, title: 'Welcome to PrepFlow', type: 'info', time: 'Just now' },
+  { id: 2, title: 'Inventory system online', type: 'success', time: '2m ago' },
+  { id: 3, title: 'New recipe templates added', type: 'info', time: '1h ago' },
+  { id: 4, title: 'Menu planner ready', type: 'info', time: '3h ago' },
+  { id: 5, title: 'Costing module coming soon', type: 'warning', time: '1d ago' },
+];
+
 export default function Dashboard() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   
+  const [showNotifications, setShowNotifications] = useState(false);
   const [stats, setStats] = useState({
     activeMenus: 0,
-    healthPercent: 100,
-    lowStockCount: 0,
     totalIngredients: 0,
-    alerts: [] as any[]
+    criticalCount: 0,
+    restockCount: 0,
+    totalAlerts: 0,
   });
 
   useFocusEffect(
     useCallback(() => {
       const activeCount = getDashboardActiveMenuCount();
       const health = getInventoryHealthStats();
-      const items = getLowStockItems();
+      const alerts = getInventoryAlertCounts();
 
       setStats({
         activeMenus: activeCount,
-        healthPercent: health.percent,
-        lowStockCount: health.low,
         totalIngredients: health.total,
-        alerts: items
+        criticalCount: alerts.critical,
+        restockCount: alerts.restock,
+        totalAlerts: alerts.total,
       });
     }, [])
   );
-
-  const inventoryInsights = [
-    `${stats.lowStockCount} items need attention`,
-    `Health: ${stats.healthPercent}% stable`,
-    `${stats.totalIngredients} ingredients tracked`,
-  ];
 
   const opacity1 = useRef(new Animated.Value(0)).current;
   const translateY1 = useRef(new Animated.Value(12)).current;
   const opacity2 = useRef(new Animated.Value(0)).current;
   const translateY2 = useRef(new Animated.Value(12)).current;
-
-  const ringOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.stagger(150, [
@@ -398,21 +310,6 @@ export default function Dashboard() {
         Animated.timing(translateY2, { toValue: 0, duration: 400, useNativeDriver: true }),
       ]),
     ]).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(ringOpacity, {
-          toValue: 0.85,
-          duration: 3500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(ringOpacity, {
-          toValue: 1,
-          duration: 3500,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
   }, []);
 
   return (
@@ -431,9 +328,9 @@ export default function Dashboard() {
         </View>
 
         {/* Notification Bell */}
-        <TouchableOpacity style={styles.notificationBtn} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.notificationBtn} activeOpacity={0.7} onPress={() => setShowNotifications(true)}>
           <Bell size={20} color={Colors.accent} />
-          <View style={styles.notificationDot} />
+          {stats.totalAlerts > 0 && <View style={styles.notificationDot} />}
         </TouchableOpacity>
       </View>
 
@@ -445,19 +342,6 @@ export default function Dashboard() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <TouchableOpacity
-          onPress={() => router.push('/test')}
-          style={{
-            backgroundColor: '#333',
-            padding: 12,
-            borderRadius: 8,
-            marginBottom: 16,
-            alignItems: 'center',
-          }}
-        >
-          <Text style={{ color: 'white', fontWeight: '600' }}>TEST SCREEN</Text>
-        </TouchableOpacity>
-
         {/* Operations Hub Metrics */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
@@ -493,51 +377,50 @@ export default function Dashboard() {
             <View style={styles.sectionDot} />
             <Text style={[styles.sectionLabel, Typography.label]}>INVENTORY HEALTH</Text>
             <View style={styles.headerIconSpacer} />
-            <Activity size={12} color={Colors.accent} />
+            <AlertTriangle size={12} color={Colors.accent} />
           </View>
           
           <View style={styles.healthMonitorPanel}>
-            {/* Health Score Overview */}
-            <View style={styles.healthScoreRow}>
-              <View style={styles.healthScoreContainer}>
-                <Animated.View style={[styles.healthScoreCircle, { opacity: ringOpacity }]} />
-                <View style={styles.healthScoreTextOverlay}>
-                  <Text style={[styles.healthScorePercent, Typography.heading]}>{stats.healthPercent}%</Text>
-                  <Text style={[styles.healthScoreLabel, Typography.label]}>HEALTHY</Text>
-                </View>
+            {stats.totalIngredients === 0 ? (
+              <Text style={{ color: IVORY, opacity: 0.3, fontStyle: 'italic', textAlign: 'center', paddingVertical: 10 }}>
+                No inventory data
+              </Text>
+            ) : stats.totalAlerts === 0 ? (
+              <View style={styles.alertsEmpty}>
+                <CheckCircle2 size={24} color="#4ADE80" />
+                <Text style={styles.alertsEmptyText}>All systems stable.</Text>
+                <Text style={styles.alertsEmptySub}>{stats.totalIngredients} ingredients tracked</Text>
               </View>
-              
-              <View style={styles.healthScoreMeta}>
-                <RotatingInsight 
-                  insights={inventoryInsights} 
-                  textStyle={styles.inventoryInsightText}
-                />
-                <View style={styles.metaSecondaryRow}>
-                  <CheckCircle2 size={12} color="#4ADE80" opacity={0.8} />
-                  <Text style={[styles.metaSecondaryText, Typography.bodyText]}>{stats.totalIngredients - stats.lowStockCount} items stable</Text>
+            ) : (
+              <>
+                <View style={styles.alertsHeader}>
+                  <AlertTriangle size={18} color={Colors.accent} />
+                  <Text style={styles.alertsTotal}>{stats.totalAlerts}</Text>
+                  <Text style={styles.alertsTotalLabel}>Total Alerts</Text>
                 </View>
-              </View>
-            </View>
 
-            <View style={styles.healthDivider} />
+                <View style={styles.alertsBreakdown}>
+                  <View style={styles.alertBadge}>
+                    <View style={[styles.alertDot, { backgroundColor: '#FF6B6B' }]} />
+                    <Text style={styles.alertCount}>{stats.criticalCount}</Text>
+                    <Text style={styles.alertLabel}>Critical</Text>
+                  </View>
+                  <View style={[styles.alertBadge, { marginLeft: 28 }]}>
+                    <View style={[styles.alertDot, { backgroundColor: Colors.accent }]} />
+                    <Text style={styles.alertCount}>{stats.restockCount}</Text>
+                    <Text style={styles.alertLabel}>Restock</Text>
+                  </View>
+                </View>
 
-            {/* Operational Status Cards */}
-            <FadeInView style={styles.statusContainer}>
-              {stats.alerts.length === 0 ? (
-                <Text style={{ color: IVORY, opacity: 0.3, fontStyle: 'italic', textAlign: 'center', paddingVertical: 10 }}>
-                  All systems stable.
-                </Text>
-              ) : (
-                stats.alerts.map((alert, idx) => (
-                  <InventoryStatusCard 
-                    key={idx}
-                    status={alert.status} 
-                    item={alert.name} 
-                    type={alert.type} 
-                  />
-                ))
-              )}
-            </FadeInView>
+                <TouchableOpacity
+                  style={styles.viewAlertsBtn}
+                  onPress={() => router.push('/inventory-alerts')}
+                >
+                  <Text style={styles.viewAlertsText}>View Alerts</Text>
+                  <ChevronRight size={14} color={DARK_FOREST} />
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
 
@@ -557,11 +440,73 @@ export default function Dashboard() {
         {/* Primary Action */}
         <AnimatedButton
           style={styles.actionButton}
+          onPress={() => router.push('/pos-connect')}
         >
           <Plus size={20} color="white" />
           <Text style={[Typography.buttonText, styles.actionButtonText]}>New Operation</Text>
         </AnimatedButton>
       </ScrollView>
+
+      {/* Notification Panel Modal */}
+      <Modal
+        visible={showNotifications}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowNotifications(false)}
+      >
+        <TouchableOpacity
+          style={styles.notifBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowNotifications(false)}
+        >
+          <View style={styles.notifPanel}>
+            <View style={styles.notifHandle} />
+            <View style={styles.notifHeader}>
+              <Bell size={16} color={Colors.accent} />
+              <Text style={styles.notifHeaderTitle}>Notifications</Text>
+              <TouchableOpacity onPress={() => setShowNotifications(false)}>
+                <X size={16} color="rgba(253, 252, 251, 0.4)" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.notifList} showsVerticalScrollIndicator={false}>
+              {NOTIFICATIONS.map((n) => (
+                <View key={n.id} style={styles.notifItem}>
+                  <View style={styles.notifDot} />
+                  <View style={styles.notifContent}>
+                    <Text style={styles.notifText}>{n.title}</Text>
+                    <Text style={styles.notifTime}>{n.time}</Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            <View style={styles.notifFooter}>
+              <TouchableOpacity
+                style={styles.footerLink}
+                onPress={() => {
+                  setShowNotifications(false);
+                  router.push('/settings');
+                }}
+              >
+                <SettingsIcon size={14} color={Colors.accent} />
+                <Text style={styles.footerLinkText}>Settings</Text>
+              </TouchableOpacity>
+              <View style={styles.footerDivider} />
+              <TouchableOpacity
+                style={styles.footerLink}
+                onPress={() => {
+                  setShowNotifications(false);
+                  router.push('/about');
+                }}
+              >
+                <Info size={14} color={Colors.accent} />
+                <Text style={styles.footerLinkText}>About</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -776,73 +721,78 @@ const styles = StyleSheet.create({
     color: IVORY,
     opacity: 0.4,
   },
-  healthDivider: {
-    height: 1,
-    backgroundColor: 'rgba(212, 163, 115, 0.05)',
-    marginVertical: 20,
-  },
-  statusContainer: {
-    gap: 12,
-  },
-  inventoryStatusCard: {
-    flexDirection: 'row',
+  alertsEmpty: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(212, 163, 115, 0.05)',
+    paddingVertical: 12,
+    gap: 6,
   },
-  inventoryStatusContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
+  alertsEmptyText: {
+    color: '#4ADE80',
+    fontSize: 15,
+    fontWeight: '600',
   },
-  statusWithIcon: {
+  alertsEmptySub: {
+    color: IVORY,
+    fontSize: 11,
+    opacity: 0.35,
+  },
+  alertsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  pulseContainer: {
-    width: 6,
-    height: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
+  alertsTotal: {
+    fontSize: 36,
+    fontWeight: '700',
+    color: IVORY,
   },
-  pulseCircle: {
-    position: 'absolute',
+  alertsTotalLabel: {
+    fontSize: 10,
+    color: IVORY,
+    opacity: 0.4,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginLeft: 4,
+  },
+  alertsBreakdown: {
+    flexDirection: 'row',
+    marginVertical: 16,
+  },
+  alertBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  alertDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
   },
-  pulseDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-  },
-  staticDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    marginLeft: 1,
-  },
-  inventoryItemName: {
-    fontSize: 14,
+  alertCount: {
+    fontSize: 18,
+    fontWeight: '700',
     color: IVORY,
-    fontWeight: '500',
-    opacity: 0.9,
   },
-  statusChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 4,
+  alertLabel: {
+    fontSize: 10,
+    color: IVORY,
+    opacity: 0.4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  statusChipText: {
-    fontSize: 8,
-    fontWeight: '800',
-    letterSpacing: 1,
+  viewAlertsBtn: {
+    backgroundColor: Colors.accent,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    gap: 8,
+  },
+  viewAlertsText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: DARK_FOREST,
   },
   feedContainer: {
     gap: 12,
@@ -908,5 +858,98 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  notifBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'flex-start',
+  },
+  notifPanel: {
+    backgroundColor: '#1C2620',
+    marginTop: 100,
+    marginHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 163, 115, 0.15)',
+    maxHeight: 420,
+    overflow: 'hidden',
+  },
+  notifHandle: {
+    width: 32,
+    height: 3,
+    backgroundColor: 'rgba(212, 163, 115, 0.3)',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 10,
+  },
+  notifHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(212, 163, 115, 0.08)',
+  },
+  notifHeaderTitle: {
+    flex: 1,
+    color: IVORY,
+    fontSize: 15,
+    fontWeight: '700',
+    marginLeft: 10,
+  },
+  notifList: {
+    maxHeight: 240,
+  },
+  notifItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(212, 163, 115, 0.05)',
+  },
+  notifDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.accent,
+    marginRight: 12,
+    flexShrink: 0,
+  },
+  notifContent: {
+    flex: 1,
+  },
+  notifText: {
+    color: IVORY,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  notifTime: {
+    color: IVORY,
+    fontSize: 10,
+    opacity: 0.35,
+    marginTop: 2,
+  },
+  notifFooter: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(212, 163, 115, 0.08)',
+  },
+  footerLink: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+  },
+  footerDivider: {
+    width: 1,
+    backgroundColor: 'rgba(212, 163, 115, 0.08)',
+  },
+  footerLinkText: {
+    color: Colors.accent,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

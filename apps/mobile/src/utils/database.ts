@@ -192,18 +192,233 @@ export function addIngredient(
 
 export function seedIngredients() {
   const existing = db.getFirstSync<CountRow>(`
-    SELECT COUNT(*) as count
-    FROM ingredients
+    SELECT COUNT(*) as count FROM ingredients
   `);
+  console.log('[SEED_DEBUG] ingredient count before seed:', existing?.count ?? 0);
 
-  if ((existing?.count ?? 0) > 0) {
+  if ((existing?.count ?? 0) >= 25) {
+    console.log('[SEED_DEBUG] already have 25+ ingredients, skipping seed');
     return;
   }
 
-  addIngredient('Chicken Breast', 'Protein', 'kg', 800);
-  addIngredient('Basmati Rice', 'Grain', 'kg', 250);
-  addIngredient('Olive Oil', 'Pantry', 'litres', 1200);
-  addIngredient('Onions', 'Vegetables', 'kg', 120);
+  const demoIngredients: { name: string; category: string; unit: string; cost: number }[] = [
+    { name: 'Tomatoes', category: 'Vegetables', unit: 'kg', cost: 150 },
+    { name: 'Onions', category: 'Vegetables', unit: 'kg', cost: 120 },
+    { name: 'Garlic', category: 'Vegetables', unit: 'kg', cost: 300 },
+    { name: 'Ginger', category: 'Vegetables', unit: 'kg', cost: 250 },
+    { name: 'Carrots', category: 'Vegetables', unit: 'kg', cost: 100 },
+    { name: 'Potatoes', category: 'Vegetables', unit: 'kg', cost: 80 },
+    { name: 'Green Peppers', category: 'Vegetables', unit: 'kg', cost: 200 },
+    { name: 'Red Peppers', category: 'Vegetables', unit: 'kg', cost: 220 },
+    { name: 'Broccoli', category: 'Vegetables', unit: 'kg', cost: 350 },
+    { name: 'Spinach', category: 'Vegetables', unit: 'kg', cost: 180 },
+    { name: 'Chicken Breast', category: 'Protein', unit: 'kg', cost: 800 },
+    { name: 'Chicken Thigh', category: 'Protein', unit: 'kg', cost: 650 },
+    { name: 'Beef Mince', category: 'Protein', unit: 'kg', cost: 900 },
+    { name: 'Beef Steak', category: 'Protein', unit: 'kg', cost: 1500 },
+    { name: 'Pork Sausage', category: 'Protein', unit: 'kg', cost: 600 },
+    { name: 'Tilapia', category: 'Protein', unit: 'kg', cost: 700 },
+    { name: 'Salmon', category: 'Protein', unit: 'kg', cost: 1200 },
+    { name: 'Eggs', category: 'Protein', unit: 'pieces', cost: 50 },
+    { name: 'Milk', category: 'Dairy', unit: 'litres', cost: 130 },
+    { name: 'Butter', category: 'Dairy', unit: 'kg', cost: 400 },
+    { name: 'Cooking Cream', category: 'Dairy', unit: 'litres', cost: 350 },
+    { name: 'Basmati Rice', category: 'Grain', unit: 'kg', cost: 250 },
+    { name: 'Pasta', category: 'Grain', unit: 'kg', cost: 200 },
+    { name: 'Coconut Milk', category: 'Pantry', unit: 'litres', cost: 180 },
+    { name: 'Vegetable Oil', category: 'Pantry', unit: 'litres', cost: 300 },
+  ];
+
+  let insertedCount = 0;
+
+  for (const ingredient of demoIngredients) {
+    const existingRow = db.getFirstSync<{ id: number }>(
+      `SELECT id FROM ingredients WHERE name = ?`,
+      [ingredient.name]
+    );
+
+    if (existingRow) {
+      console.log('[SEED_DEBUG] ingredient already exists, skipping:', ingredient.name);
+      continue;
+    }
+
+    console.log('[SEED_DEBUG] inserting ingredient:', ingredient.name);
+    addIngredient(ingredient.name, ingredient.category, ingredient.unit, ingredient.cost);
+    insertedCount++;
+  }
+
+  const after = db.getFirstSync<CountRow>(`SELECT COUNT(*) as count FROM ingredients`);
+  console.log('[SEED_DEBUG] ingredient count after seed:', after?.count ?? 0);
+  console.log('[SEED_DEBUG] seed ingredients inserted:', insertedCount);
+}
+
+export function seedRecipes() {
+  const existing = db.getFirstSync<CountRow>(`
+    SELECT COUNT(*) as count FROM recipes
+  `);
+  console.log('[SEED_DEBUG] recipe count before seed:', existing?.count ?? 0);
+
+  if ((existing?.count ?? 0) >= 15) {
+    console.log('[SEED_DEBUG] already have 15+ recipes, skipping seed');
+    return;
+  }
+
+  const demoRecipes: { name: string; category: string; portions: number }[] = [
+    { name: 'Chicken Stir Fry', category: 'Main', portions: 4 },
+    { name: 'Beef Stew', category: 'Main', portions: 6 },
+    { name: 'Vegetable Curry', category: 'Main', portions: 4 },
+    { name: 'Pilau Rice', category: 'Side', portions: 6 },
+    { name: 'Coconut Rice', category: 'Side', portions: 6 },
+    { name: 'Chicken Alfredo', category: 'Main', portions: 4 },
+    { name: 'Spaghetti Bolognese', category: 'Main', portions: 6 },
+    { name: 'Grilled Tilapia', category: 'Main', portions: 2 },
+    { name: 'Beef Burger', category: 'Main', portions: 4 },
+    { name: 'Chicken Wrap', category: 'Main', portions: 2 },
+    { name: 'Vegetable Soup', category: 'Soup', portions: 6 },
+    { name: 'Mashed Potatoes', category: 'Side', portions: 4 },
+    { name: 'Chicken Curry', category: 'Main', portions: 4 },
+    { name: 'Rice and Beans', category: 'Main', portions: 6 },
+    { name: 'Breakfast Omelette', category: 'Breakfast', portions: 2 },
+  ];
+
+  let insertedCount = 0;
+
+  for (const recipe of demoRecipes) {
+    const existingRow = db.getFirstSync<{ id: number }>(
+      `SELECT id FROM recipes WHERE name = ?`,
+      [recipe.name]
+    );
+
+    if (existingRow) {
+      console.log('[SEED_DEBUG] recipe already exists, skipping:', recipe.name);
+      continue;
+    }
+
+    console.log('[SEED_DEBUG] inserting recipe:', recipe.name);
+    addRecipe(recipe.name, recipe.category, recipe.portions);
+    insertedCount++;
+  }
+
+  const after = db.getFirstSync<CountRow>(`SELECT COUNT(*) as count FROM recipes`);
+  console.log('[SEED_DEBUG] recipe count after seed:', after?.count ?? 0);
+  console.log('[SEED_DEBUG] seed recipes inserted:', insertedCount);
+}
+
+export function seedInventory() {
+  const existing = db.getFirstSync<CountRow>(`
+    SELECT COUNT(*) as count FROM inventory
+  `);
+  console.log('[SEED_DEBUG] inventory count before seed:', existing?.count ?? 0);
+
+  if ((existing?.count ?? 0) >= 20) {
+    console.log('[SEED_DEBUG] already have 20+ inventory items, skipping seed');
+    return;
+  }
+
+  const getOrCreateIngredient = (name: string, category: string, unit: string, cost: number): number => {
+    const row = db.getFirstSync<{ id: number }>(`SELECT id FROM ingredients WHERE name = ?`, [name]);
+    if (row) return row.id;
+    const result = addIngredient(name, category, unit, cost);
+    return result.lastInsertRowId;
+  };
+
+  const seedItems = [
+    // LOW stock (quantity < minimum)
+    { name: 'Tomatoes', category: 'Vegetables', unit: 'kg', cost: 150, quantity: 1, minimumQuantity: 5 },
+    { name: 'Onions', category: 'Vegetables', unit: 'kg', cost: 120, quantity: 2, minimumQuantity: 10 },
+    { name: 'Milk', category: 'Dairy', unit: 'litres', cost: 130, quantity: 3, minimumQuantity: 10 },
+    { name: 'Garlic', category: 'Vegetables', unit: 'kg', cost: 300, quantity: 1, minimumQuantity: 3 },
+    { name: 'Carrots', category: 'Vegetables', unit: 'kg', cost: 100, quantity: 8, minimumQuantity: 10 },
+    { name: 'Green Peppers', category: 'Vegetables', unit: 'kg', cost: 200, quantity: 2, minimumQuantity: 5 },
+    { name: 'Spinach', category: 'Vegetables', unit: 'kg', cost: 180, quantity: 2, minimumQuantity: 5 },
+    { name: 'Beef Mince', category: 'Protein', unit: 'kg', cost: 900, quantity: 5, minimumQuantity: 10 },
+    { name: 'Tilapia', category: 'Protein', unit: 'kg', cost: 700, quantity: 3, minimumQuantity: 5 },
+    // CRITICAL stock (quantity <= 20% of minimum)
+    { name: 'Ginger', category: 'Vegetables', unit: 'kg', cost: 250, quantity: 0.2, minimumQuantity: 2 },
+    { name: 'Red Peppers', category: 'Vegetables', unit: 'kg', cost: 220, quantity: 0.5, minimumQuantity: 4 },
+    { name: 'Beef Steak', category: 'Protein', unit: 'kg', cost: 1500, quantity: 0.5, minimumQuantity: 3 },
+    { name: 'Salmon', category: 'Protein', unit: 'kg', cost: 1200, quantity: 0.5, minimumQuantity: 4 },
+    // HEALTHY stock (quantity >= minimum)
+    { name: 'Basmati Rice', category: 'Grain', unit: 'kg', cost: 250, quantity: 50, minimumQuantity: 10 },
+    { name: 'Eggs', category: 'Protein', unit: 'pieces', cost: 50, quantity: 30, minimumQuantity: 12 },
+    { name: 'Chicken Breast', category: 'Protein', unit: 'kg', cost: 800, quantity: 20, minimumQuantity: 5 },
+    { name: 'Potatoes', category: 'Vegetables', unit: 'kg', cost: 80, quantity: 25, minimumQuantity: 15 },
+    { name: 'Chicken Thigh', category: 'Protein', unit: 'kg', cost: 650, quantity: 10, minimumQuantity: 8 },
+    { name: 'Pork Sausage', category: 'Protein', unit: 'kg', cost: 600, quantity: 8, minimumQuantity: 6 },
+    { name: 'Broccoli', category: 'Vegetables', unit: 'kg', cost: 350, quantity: 3, minimumQuantity: 3 },
+  ];
+
+  let insertedCount = 0;
+
+  for (const item of seedItems) {
+    const existingRow = db.getFirstSync<{ id: number }>(
+      `SELECT inv.id FROM inventory inv
+       JOIN ingredients i ON i.id = inv.ingredient_id
+       WHERE i.name = ?`,
+      [item.name]
+    );
+
+    if (existingRow) {
+      console.log('[SEED_DEBUG] already in inventory, skipping:', item.name);
+      continue;
+    }
+
+    console.log('[SEED_DEBUG] inserting into inventory:', item.name);
+    const ingredientId = getOrCreateIngredient(item.name, item.category, item.unit, item.cost);
+    addInventoryItem(ingredientId, item.quantity, item.minimumQuantity);
+    insertedCount++;
+  }
+
+  const after = db.getFirstSync<CountRow>(`SELECT COUNT(*) as count FROM inventory`);
+  console.log('[SEED_DEBUG] inventory row count after seed:', after?.count ?? 0);
+  console.log('[SEED_DEBUG] seed items inserted:', insertedCount);
+}
+
+export function seedMenus() {
+  const existing = db.getFirstSync<CountRow>(`
+    SELECT COUNT(*) as count FROM menus
+  `);
+  console.log('[SEED_DEBUG] menu count before seed:', existing?.count ?? 0);
+
+  if ((existing?.count ?? 0) >= 10) {
+    console.log('[SEED_DEBUG] already have 10+ menus, skipping seed');
+    return;
+  }
+
+  const demoMenus: { name: string; event_date: string }[] = [
+    { name: 'Healthy Lunch Menu', event_date: '2026-07-01' },
+    { name: 'Corporate Buffet A', event_date: '2026-07-05' },
+    { name: 'Corporate Buffet B', event_date: '2026-07-10' },
+    { name: 'Wedding Package Silver', event_date: '2026-08-15' },
+    { name: 'Wedding Package Gold', event_date: '2026-09-01' },
+    { name: 'School Lunch Weekday', event_date: '2026-07-02' },
+    { name: 'Gym Meal Plan', event_date: '2026-07-03' },
+    { name: 'Vegetarian Package', event_date: '2026-07-20' },
+    { name: 'Family Dinner Package', event_date: '2026-07-25' },
+    { name: 'Weekend BBQ Package', event_date: '2026-08-01' },
+  ];
+
+  let insertedCount = 0;
+
+  for (const menu of demoMenus) {
+    const existingRow = db.getFirstSync<{ id: number }>(
+      `SELECT id FROM menus WHERE name = ?`,
+      [menu.name]
+    );
+
+    if (existingRow) {
+      console.log('[SEED_DEBUG] menu already exists, skipping:', menu.name);
+      continue;
+    }
+
+    console.log('[SEED_DEBUG] inserting menu:', menu.name);
+    addMenu(menu.name, menu.event_date);
+    insertedCount++;
+  }
+
+  const after = db.getFirstSync<CountRow>(`SELECT COUNT(*) as count FROM menus`);
+  console.log('[SEED_DEBUG] menu count after seed:', after?.count ?? 0);
+  console.log('[SEED_DEBUG] seed menus inserted:', insertedCount);
 }
 
 export function deleteIngredient(id: number) {
@@ -521,7 +736,7 @@ export function getInventoryHealthStats() {
   };
 }
 
-export function getLowStockItems(limit: number = 2) {
+export function getLowStockItems(limit: number = 50) {
   return db.getAllSync<{ name: string; status: string; type: 'critical' | 'restock' }>(
     `SELECT 
       i.name,
@@ -538,6 +753,57 @@ export function getLowStockItems(limit: number = 2) {
      WHERE inv.quantity < inv.minimum_quantity
      LIMIT ?`,
     [limit]
+  );
+}
+
+export function getInventoryAlertCounts() {
+  const total = db.getFirstSync<CountRow>(
+    `SELECT COUNT(*) as count FROM inventory WHERE quantity < minimum_quantity`
+  );
+  const critical = db.getFirstSync<CountRow>(
+    `SELECT COUNT(*) as count FROM inventory WHERE quantity < minimum_quantity AND quantity <= (minimum_quantity * 0.2)`
+  );
+  const restock = db.getFirstSync<CountRow>(
+    `SELECT COUNT(*) as count FROM inventory WHERE quantity < minimum_quantity AND quantity > (minimum_quantity * 0.2)`
+  );
+
+  return {
+    total: total?.count ?? 0,
+    critical: critical?.count ?? 0,
+    restock: restock?.count ?? 0,
+  };
+}
+
+export function getInventoryAlerts() {
+  return db.getAllSync<{
+    id: number;
+    name: string;
+    quantity: number;
+    minimum_quantity: number;
+    unit: string | null;
+    status: string;
+    type: 'critical' | 'restock';
+  }>(
+    `SELECT 
+      inv.id,
+      i.name,
+      inv.quantity,
+      inv.minimum_quantity,
+      i.unit,
+      CASE 
+        WHEN inv.quantity <= (inv.minimum_quantity * 0.2) THEN 'LOW STOCK'
+        ELSE 'RESTOCK SOON'
+      END as status,
+      CASE 
+        WHEN inv.quantity <= (inv.minimum_quantity * 0.2) THEN 'critical'
+        ELSE 'restock'
+      END as type
+     FROM inventory inv
+     JOIN ingredients i ON i.id = inv.ingredient_id
+     WHERE inv.quantity < inv.minimum_quantity
+     ORDER BY 
+       CASE WHEN inv.quantity <= (inv.minimum_quantity * 0.2) THEN 0 ELSE 1 END,
+       inv.quantity ASC`
   );
 }
 
