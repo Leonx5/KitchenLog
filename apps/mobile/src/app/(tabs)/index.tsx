@@ -2,133 +2,64 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Animated, TouchableOpacity, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { TrendingUp, ClipboardList, Plus, AlertCircle, Clock, Utensils, Package, ChevronRight, Activity, CheckCircle2, Bell, Leaf, X, Info, Settings as SettingsIcon, AlertTriangle } from 'lucide-react-native';
+import { TrendingUp, Plus, Clock, Utensils, Package, ChevronRight, Activity, CheckCircle2, Bell, Leaf, X, Info, Settings as SettingsIcon, DollarSign, BookOpen, Menu as MenuIcon, Grid, BarChart3, RefreshCw, List, ShoppingCart, AlertTriangle } from 'lucide-react-native';
 import { Colors } from '@/theme/colors';
 import { Typography } from '@/theme/typography';
-import { AnimatedButton, FadeInView } from '@/components/AnimatedWrappers';
+import { FadeInView } from '@/components/AnimatedWrappers';
 import { 
-  getDashboardActiveMenuCount, 
   getInventoryHealthStats, 
-  getInventoryAlertCounts 
+  getInventoryAlertCounts,
+  getRecipes,
+  getMenus,
+  getInventory,
+  getIngredients
 } from '@/utils/database';
-
-const ACTIVE_MENU_INSIGHTS = [
-  '+1 This Week',
-  'Next Event Saturday',
-  '2 Ready For Production',
-];
-
-const PRODUCTION_VALUE_INSIGHTS = [
-  '+16% This Month',
-  'Average Event KSh 31K',
-  'Largest Event KSh 52K',
-];
 
 const IVORY = '#FDFCFB';
 const DARK_FOREST = '#0F1A15';
 const DARK_OLIVE = '#1C2620';
 const SOFT_SAND = 'rgba(212, 163, 115, 0.9)';
 
-function CountUpValue({ value, suffix = '', duration = 1000 }: { value: number; suffix?: string; duration?: number }) {
-  const [displayValue, setDisplayValue] = useState(0);
-  
-  useEffect(() => {
-    let startTimestamp: number | null = null;
-    const step = (timestamp: number) => {
-      if (!startTimestamp) startTimestamp = timestamp;
-      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-      setDisplayValue(Math.floor(progress * value));
-      if (progress < 1) {
-        window.requestAnimationFrame(step);
-      }
-    };
-    window.requestAnimationFrame(step);
-  }, [value, duration]);
-
-  return <Text>{displayValue}{suffix}</Text>;
+function getInventoryValue(): number {
+  try {
+    const items = getInventory();
+    const ingredients = getIngredients();
+    const costMap: Record<number, number> = {};
+    for (const ing of ingredients) {
+      costMap[ing.id] = ing.cost_per_unit;
+    }
+    let total = 0;
+    for (const item of items) {
+      const cost = item.ingredient_id ? (costMap[item.ingredient_id] ?? 0) : 0;
+      total += item.quantity * cost;
+    }
+    return Math.round(total);
+  } catch {
+    return 0;
+  }
 }
 
-const ROTATION_DURATIONS = [5000, 10000, 7000, 12000];
+type KpiCardProps = {
+  icon: any;
+  label: string;
+  value: string | number;
+  accentColor?: string;
+  onPress?: () => void;
+};
 
-function RotatingInsight({ insights, textStyle }: { insights: string[]; textStyle?: any }) {
-  const [index, setIndex] = useState(0);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    let isMounted = true;
-    let timeoutId: NodeJS.Timeout;
-
-    const rotate = (currentIndex: number) => {
-      if (!isMounted) return;
-      
-      const nextDuration = ROTATION_DURATIONS[currentIndex % ROTATION_DURATIONS.length];
-      
-      timeoutId = setTimeout(() => {
-        if (!isMounted) return;
-
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: true,
-        }).start(() => {
-          if (!isMounted) return;
-          
-          const nextIndex = (currentIndex + 1) % insights.length;
-          setIndex(nextIndex);
-
-          Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }).start(() => {
-            rotate(nextIndex);
-          });
-        });
-      }, nextDuration);
-    };
-
-    rotate(0);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timeoutId);
-    };
-  }, [insights, fadeAnim]);
-
+function KpiCard({ icon: Icon, label, value, accentColor = Colors.accent, onPress }: KpiCardProps) {
   return (
-    <Animated.View style={{ opacity: fadeAnim }}>
-      <Text style={[Typography.label, textStyle]}>{insights[index]}</Text>
-    </Animated.View>
-  );
-}
-
-function MetricCard({
-  title,
-  value,
-  suffix = '',
-  insights,
-  animatedStyle,
-}: {
-  title: string;
-  value: number;
-  suffix?: string;
-  insights: string[];
-  animatedStyle?: any;
-}) {
-  return (
-    <Animated.View style={[styles.metricCard, animatedStyle]}>
-      <View style={styles.metricAccent} />
-      <Text style={[styles.metricLabel, Typography.label]}>{title.toUpperCase()}</Text>
-      <View style={styles.metricValueRow}>
-        <Text style={[styles.metricValue, Typography.heading]}>
-          <CountUpValue value={value} suffix={suffix} />
-        </Text>
+    <TouchableOpacity
+      style={[styles.kpiCard, onPress && styles.kpiCardPressable]}
+      onPress={onPress}
+      activeOpacity={onPress ? 0.7 : 1}
+    >
+      <View style={[styles.kpiIconWrap, { backgroundColor: `${accentColor}15` }]}>
+        <Icon size={16} color={accentColor} />
       </View>
-      <View style={styles.trendRow}>
-        <TrendingUp size={12} color={Colors.accent} style={styles.trendIcon} />
-        <RotatingInsight insights={insights} textStyle={styles.metricTrend} />
-      </View>
-    </Animated.View>
+      <Text style={[styles.kpiValue, { color: accentColor }]}>{value}</Text>
+      <Text style={styles.kpiLabel}>{label}</Text>
+    </TouchableOpacity>
   );
 }
 
@@ -158,6 +89,13 @@ const OPERATIONAL_ACTIVITIES = [
 
 const FEED_ROTATION_DURATIONS = [8000, 10000, 12000];
 
+function getHealthColor(percent: number): string {
+  if (percent >= 90) return '#4ADE80';
+  if (percent >= 70) return '#E9C46A';
+  if (percent >= 50) return '#FF8C00';
+  return '#FF6B6B';
+}
+
 function RotatingOperationalFeed() {
   const [index, setIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -174,7 +112,6 @@ function RotatingOperationalFeed() {
       timeoutId = setTimeout(() => {
         if (!isMounted) return;
 
-        // Fade out
         Animated.timing(fadeAnim, {
           toValue: 0,
           duration: 600,
@@ -185,7 +122,6 @@ function RotatingOperationalFeed() {
           const nextIndex = (currentIndex + 1) % OPERATIONAL_ACTIVITIES.length;
           setIndex(nextIndex);
 
-          // Fade in
           Animated.timing(fadeAnim, {
             toValue: 1,
             duration: 600,
@@ -236,7 +172,7 @@ function ActivityEntry({
   const categoryColor = 
     type === 'menu' ? '#4ADE80' : 
     type === 'inventory' ? '#FF6B6B' : 
-    '#E9C46A'; // Brighter Gold for Recipe visibility
+    '#E9C46A';
 
   const titleColor = type === 'recipe' ? SOFT_SAND : categoryColor;
 
@@ -258,11 +194,33 @@ function ActivityEntry({
 }
 
 const NOTIFICATIONS = [
-  { id: 1, title: 'Welcome to PrepFlow', type: 'info', time: 'Just now' },
+  { id: 1, title: 'Welcome to KitchenLog', type: 'info', time: 'Just now' },
   { id: 2, title: 'Inventory system online', type: 'success', time: '2m ago' },
   { id: 3, title: 'New recipe templates added', type: 'info', time: '1h ago' },
   { id: 4, title: 'Menu planner ready', type: 'info', time: '3h ago' },
   { id: 5, title: 'Costing module coming soon', type: 'warning', time: '1d ago' },
+];
+
+type ActionItem = {
+  icon: any;
+  label: string;
+  description: string;
+  route: string;
+  color?: string;
+};
+
+const OPS_HUB_ACTIONS: ActionItem[] = [
+  { icon: Activity, label: 'POS Connect', description: 'Connect to your point-of-sale system', route: '/pos-connect', color: '#4ADE80' },
+  { icon: RefreshCw, label: 'Inventory Sync', description: 'Sync stock levels and audit', route: '/(tabs)/inventory', color: '#4ADE80' },
+  { icon: Utensils, label: 'Menu Sync', description: 'Push menu items and pricing', route: '/(tabs)/menus', color: '#E9C46A' },
+];
+
+const NEW_OPERATION_ACTIONS: ActionItem[] = [
+  { icon: BookOpen, label: 'Create Recipe', description: 'Add a new recipe to your library', route: '/(tabs)/recipes' },
+  { icon: MenuIcon, label: 'Create Menu', description: 'Build a new menu from recipes', route: '/(tabs)/menus' },
+  { icon: ShoppingCart, label: 'Track Ingredient', description: 'Add ingredient to inventory', route: '/(tabs)/inventory' },
+  { icon: Package, label: 'Inventory Count', description: 'Record a physical count', route: '/(tabs)/inventory', color: '#4ADE80' },
+  { icon: AlertTriangle, label: 'View Alerts', description: 'Review low stock and critical items', route: '/inventory-alerts', color: '#FF6B6B' },
 ];
 
 export default function Dashboard() {
@@ -270,53 +228,59 @@ export default function Dashboard() {
   const router = useRouter();
   
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showOpsHub, setShowOpsHub] = useState(false);
+  const [showNewOp, setShowNewOp] = useState(false);
   const [stats, setStats] = useState({
-    activeMenus: 0,
     totalIngredients: 0,
     criticalCount: 0,
     restockCount: 0,
     totalAlerts: 0,
+    healthPercent: 100,
+    itemsNeedAttention: 0,
+    itemsStable: 0,
+    inventoryValue: 0,
+    recipeCount: 0,
+    menuCount: 0,
+    lowStockCount: 0,
   });
 
   useFocusEffect(
     useCallback(() => {
-      const activeCount = getDashboardActiveMenuCount();
       const health = getInventoryHealthStats();
       const alerts = getInventoryAlertCounts();
+      const recipes = getRecipes();
+      const menus = getMenus();
+      const invValue = getInventoryValue();
 
       setStats({
-        activeMenus: activeCount,
         totalIngredients: health.total,
         criticalCount: alerts.critical,
         restockCount: alerts.restock,
         totalAlerts: alerts.total,
+        healthPercent: health.percent,
+        itemsNeedAttention: health.low,
+        itemsStable: health.total - health.low,
+        inventoryValue: invValue,
+        recipeCount: recipes.length,
+        menuCount: menus.length,
+        lowStockCount: alerts.total,
       });
     }, [])
   );
 
-  const opacity1 = useRef(new Animated.Value(0)).current;
-  const translateY1 = useRef(new Animated.Value(12)).current;
-  const opacity2 = useRef(new Animated.Value(0)).current;
-  const translateY2 = useRef(new Animated.Value(12)).current;
+  const handleOpAction = useCallback((action: ActionItem) => {
+    setShowOpsHub(false);
+    router.push(action.route as any);
+  }, [router]);
 
-  useEffect(() => {
-    Animated.stagger(150, [
-      Animated.parallel([
-        Animated.timing(opacity1, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.timing(translateY1, { toValue: 0, duration: 400, useNativeDriver: true }),
-      ]),
-      Animated.parallel([
-        Animated.timing(opacity2, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.timing(translateY2, { toValue: 0, duration: 400, useNativeDriver: true }),
-      ]),
-    ]).start();
-  }, []);
+  const handleNewAction = useCallback((action: ActionItem) => {
+    setShowNewOp(false);
+    router.push(action.route as any);
+  }, [router]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Branded Fixed Header - Integrated into Dark Atmosphere */}
       <View style={styles.header}>
-        {/* Luxury Leaf Watermark */}
         <View style={styles.headerWatermark}>
           <Leaf size={140} color={Colors.accent} opacity={0.03} strokeWidth={1} />
         </View>
@@ -327,7 +291,6 @@ export default function Dashboard() {
           <Text style={[Typography.label, styles.brandSubtitle]}>KITCHEN OPERATIONS HUB</Text>
         </View>
 
-        {/* Notification Bell */}
         <TouchableOpacity style={styles.notificationBtn} activeOpacity={0.7} onPress={() => setShowNotifications(true)}>
           <Bell size={20} color={Colors.accent} />
           {stats.totalAlerts > 0 && <View style={styles.notificationDot} />}
@@ -338,7 +301,7 @@ export default function Dashboard() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: insets.bottom + 120 },
+          { paddingBottom: insets.bottom + 100 },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -348,27 +311,61 @@ export default function Dashboard() {
             <View style={styles.sectionDot} />
             <Text style={[styles.sectionLabel, Typography.label]}>OPERATIONS OVERVIEW</Text>
           </View>
-          <View style={styles.metricsRow}>
-            <MetricCard
-              title="Active Menus"
-              value={stats.activeMenus}
-              insights={ACTIVE_MENU_INSIGHTS}
-              animatedStyle={{
-                opacity: opacity1,
-                transform: [{ translateY: translateY1 }],
-              }}
+          <View style={styles.kpiGrid}>
+            <KpiCard
+              icon={DollarSign}
+              label="Inventory Value"
+              value={`KSh ${stats.inventoryValue.toLocaleString()}`}
+              accentColor="#4ADE80"
+              onPress={() => router.push('/inventory-value')}
             />
-            <MetricCard
-              title="Production Value"
-              value={124}
-              suffix="K"
-              insights={PRODUCTION_VALUE_INSIGHTS}
-              animatedStyle={{
-                opacity: opacity2,
-                transform: [{ translateY: translateY2 }],
-              }}
+            <KpiCard
+              icon={BookOpen}
+              label="Active Recipes"
+              value={stats.recipeCount}
+              accentColor={Colors.accent}
+              onPress={() => router.push('/(tabs)/recipes')}
+            />
+            <KpiCard
+              icon={MenuIcon}
+              label="Menus Available"
+              value={stats.menuCount}
+              accentColor="#E9C46A"
+              onPress={() => router.push('/(tabs)/menus')}
+            />
+            <KpiCard
+              icon={Package}
+              label="Low Stock Items"
+              value={stats.lowStockCount}
+              accentColor={stats.lowStockCount > 0 ? '#FF6B6B' : '#4ADE80'}
+              onPress={() => router.push('/inventory-alerts')}
             />
           </View>
+        </View>
+
+        {/* Operations Hub */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <View style={styles.sectionDot} />
+            <Grid size={12} color={Colors.accent} style={{ marginRight: 8 }} />
+            <Text style={[styles.sectionLabel, Typography.label]}>OPERATIONS HUB</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.opsHubCard}
+            onPress={() => setShowOpsHub(true)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.opsHubRow}>
+              <View style={styles.opsHubIconWrap}>
+                <Grid size={22} color={DARK_FOREST} />
+              </View>
+              <View style={styles.opsHubInfo}>
+                <Text style={styles.opsHubTitle}>Open Operations Hub</Text>
+                <Text style={styles.opsHubDesc}>POS, Sync, Menus & more</Text>
+              </View>
+              <ChevronRight size={18} color={DARK_FOREST} />
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Inventory Health Monitor */}
@@ -377,7 +374,7 @@ export default function Dashboard() {
             <View style={styles.sectionDot} />
             <Text style={[styles.sectionLabel, Typography.label]}>INVENTORY HEALTH</Text>
             <View style={styles.headerIconSpacer} />
-            <AlertTriangle size={12} color={Colors.accent} />
+            <Activity size={12} color={Colors.accent} />
           </View>
           
           <View style={styles.healthMonitorPanel}>
@@ -385,30 +382,26 @@ export default function Dashboard() {
               <Text style={{ color: IVORY, opacity: 0.3, fontStyle: 'italic', textAlign: 'center', paddingVertical: 10 }}>
                 No inventory data
               </Text>
-            ) : stats.totalAlerts === 0 ? (
-              <View style={styles.alertsEmpty}>
-                <CheckCircle2 size={24} color="#4ADE80" />
-                <Text style={styles.alertsEmptyText}>All systems stable.</Text>
-                <Text style={styles.alertsEmptySub}>{stats.totalIngredients} ingredients tracked</Text>
-              </View>
             ) : (
               <>
-                <View style={styles.alertsHeader}>
-                  <AlertTriangle size={18} color={Colors.accent} />
-                  <Text style={styles.alertsTotal}>{stats.totalAlerts}</Text>
-                  <Text style={styles.alertsTotalLabel}>Total Alerts</Text>
-                </View>
-
-                <View style={styles.alertsBreakdown}>
-                  <View style={styles.alertBadge}>
-                    <View style={[styles.alertDot, { backgroundColor: '#FF6B6B' }]} />
-                    <Text style={styles.alertCount}>{stats.criticalCount}</Text>
-                    <Text style={styles.alertLabel}>Critical</Text>
+                <View style={styles.healthScoreRow}>
+                  <View style={styles.healthScoreContainer}>
+                    <View style={[styles.healthScoreCircle, { borderColor: getHealthColor(stats.healthPercent) }]} />
+                    <View style={styles.healthScoreTextOverlay}>
+                      <Text style={styles.healthScorePercent}>{stats.healthPercent}%</Text>
+                      <Text style={[styles.healthScoreLabel, { color: getHealthColor(stats.healthPercent) }]}>HEALTHY</Text>
+                    </View>
                   </View>
-                  <View style={[styles.alertBadge, { marginLeft: 28 }]}>
-                    <View style={[styles.alertDot, { backgroundColor: Colors.accent }]} />
-                    <Text style={styles.alertCount}>{stats.restockCount}</Text>
-                    <Text style={styles.alertLabel}>Restock</Text>
+                  <View style={styles.healthScoreMeta}>
+                    <Text style={styles.inventoryInsightText}>
+                      {stats.itemsNeedAttention} Items Need Attention
+                    </Text>
+                    <View style={styles.metaSecondaryRow}>
+                      <CheckCircle2 size={10} color="#4ADE80" />
+                      <Text style={styles.metaSecondaryText}>
+                        {stats.itemsStable} Items Stable
+                      </Text>
+                    </View>
                   </View>
                 </View>
 
@@ -438,14 +431,109 @@ export default function Dashboard() {
         </View>
 
         {/* Primary Action */}
-        <AnimatedButton
+        <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => router.push('/pos-connect')}
+          onPress={() => setShowNewOp(true)}
+          activeOpacity={0.7}
         >
           <Plus size={20} color="white" />
-          <Text style={[Typography.buttonText, styles.actionButtonText]}>New Operation</Text>
-        </AnimatedButton>
+          <Text style={styles.actionButtonText}>New Operation</Text>
+        </TouchableOpacity>
       </ScrollView>
+
+      {/* Operations Hub Modal */}
+      <Modal
+        visible={showOpsHub}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowOpsHub(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowOpsHub(false)}
+        >
+          <View style={styles.modalPanel}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <Grid size={16} color={Colors.accent} />
+              <Text style={styles.modalTitle}>Operations Hub</Text>
+              <TouchableOpacity onPress={() => setShowOpsHub(false)}>
+                <X size={16} color="rgba(253, 252, 251, 0.4)" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+              {OPS_HUB_ACTIONS.map((action, i) => {
+                const color = action.color || Colors.accent;
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    style={styles.modalItem}
+                    onPress={() => handleOpAction(action)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.modalItemIcon, { backgroundColor: `${color}15` }]}>
+                      <action.icon size={16} color={color} />
+                    </View>
+                    <View style={styles.modalItemInfo}>
+                      <Text style={styles.modalItemLabel}>{action.label}</Text>
+                      <Text style={styles.modalItemDesc}>{action.description}</Text>
+                    </View>
+                    <ChevronRight size={14} color={IVORY} opacity={0.2} />
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* New Operation Modal */}
+      <Modal
+        visible={showNewOp}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowNewOp(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowNewOp(false)}
+        >
+          <View style={styles.modalPanel}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <Plus size={16} color={Colors.accent} />
+              <Text style={styles.modalTitle}>New Operation</Text>
+              <TouchableOpacity onPress={() => setShowNewOp(false)}>
+                <X size={16} color="rgba(253, 252, 251, 0.4)" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalList} showsVerticalScrollIndicator={false}>
+              {NEW_OPERATION_ACTIONS.map((action, i) => {
+                const color = action.color || Colors.accent;
+                return (
+                  <TouchableOpacity
+                    key={i}
+                    style={styles.modalItem}
+                    onPress={() => handleNewAction(action)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.modalItemIcon, { backgroundColor: `${color}15` }]}>
+                      <action.icon size={16} color={color} />
+                    </View>
+                    <View style={styles.modalItemInfo}>
+                      <Text style={styles.modalItemLabel}>{action.label}</Text>
+                      <Text style={styles.modalItemDesc}>{action.description}</Text>
+                    </View>
+                    <ChevronRight size={14} color={IVORY} opacity={0.2} />
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Notification Panel Modal */}
       <Modal
@@ -606,61 +694,80 @@ const styles = StyleSheet.create({
   headerIconSpacer: {
     flex: 1,
   },
-  metricsRow: {
+  kpiGrid: {
     flexDirection: 'row',
-    gap: 12,
+    flexWrap: 'wrap',
+    gap: 10,
   },
-  metricCard: {
-    flex: 1,
+  kpiCard: {
+    width: '48%',
     backgroundColor: DARK_OLIVE,
     borderRadius: 12,
-    padding: 20,
+    padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(212, 163, 115, 0.1)',
+    borderColor: 'rgba(212, 163, 115, 0.08)',
   },
-  metricAccent: {
-    position: 'absolute',
-    left: 12,
-    top: 12,
-    width: 2,
-    height: 8,
-    backgroundColor: Colors.accent,
-    opacity: 0.6,
+  kpiCardPressable: {
+    borderColor: 'rgba(212, 163, 115, 0.15)',
   },
-  metricLabel: {
-    fontSize: 9,
-    color: IVORY,
-    opacity: 0.4,
-    letterSpacing: 1,
+  kpiIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 10,
   },
-  metricValueRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+  kpiValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 2,
   },
-  metricValue: {
-    fontSize: 36,
+  kpiLabel: {
+    fontSize: 10,
     color: IVORY,
-    lineHeight: 40,
+    opacity: 0.4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
-  trendRow: {
+  opsHubCard: {
+    backgroundColor: Colors.accent,
+    borderRadius: 14,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 163, 115, 0.2)',
+  },
+  opsHubRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
-    minHeight: 16,
   },
-  trendIcon: {
-    marginRight: 4,
+  opsHubIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(15, 26, 21, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
   },
-  metricTrend: {
-    fontSize: 10,
-    color: Colors.accent,
-    fontWeight: '600',
+  opsHubInfo: {
+    flex: 1,
+  },
+  opsHubTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: DARK_FOREST,
+  },
+  opsHubDesc: {
+    fontSize: 11,
+    color: DARK_FOREST,
+    opacity: 0.6,
+    marginTop: 2,
   },
   healthMonitorPanel: {
     backgroundColor: DARK_OLIVE,
     borderRadius: 16,
-    padding: 20,
+    padding: 24,
     borderWidth: 1,
     borderColor: 'rgba(212, 163, 115, 0.1)',
   },
@@ -721,65 +828,6 @@ const styles = StyleSheet.create({
     color: IVORY,
     opacity: 0.4,
   },
-  alertsEmpty: {
-    alignItems: 'center',
-    paddingVertical: 12,
-    gap: 6,
-  },
-  alertsEmptyText: {
-    color: '#4ADE80',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  alertsEmptySub: {
-    color: IVORY,
-    fontSize: 11,
-    opacity: 0.35,
-  },
-  alertsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  alertsTotal: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: IVORY,
-  },
-  alertsTotalLabel: {
-    fontSize: 10,
-    color: IVORY,
-    opacity: 0.4,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginLeft: 4,
-  },
-  alertsBreakdown: {
-    flexDirection: 'row',
-    marginVertical: 16,
-  },
-  alertBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  alertDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  alertCount: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: IVORY,
-  },
-  alertLabel: {
-    fontSize: 10,
-    color: IVORY,
-    opacity: 0.4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
   viewAlertsBtn: {
     backgroundColor: Colors.accent,
     borderRadius: 8,
@@ -788,6 +836,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     gap: 8,
+    marginTop: 20,
   },
   viewAlertsText: {
     fontSize: 13,
@@ -851,10 +900,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 15,
     elevation: 8,
+    gap: 8,
+    marginBottom: 40,
   },
   actionButtonText: {
     color: 'white',
-    marginLeft: 12,
     fontSize: 15,
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -951,5 +1001,79 @@ const styles = StyleSheet.create({
     color: Colors.accent,
     fontSize: 12,
     fontWeight: '600',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalPanel: {
+    backgroundColor: '#1C2620',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 163, 115, 0.15)',
+    borderBottomWidth: 0,
+    maxHeight: '70%',
+    overflow: 'hidden',
+  },
+  modalHandle: {
+    width: 36,
+    height: 4,
+    backgroundColor: 'rgba(212, 163, 115, 0.3)',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(212, 163, 115, 0.08)',
+  },
+  modalTitle: {
+    flex: 1,
+    color: IVORY,
+    fontSize: 17,
+    fontWeight: '700',
+    marginLeft: 10,
+  },
+  modalList: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 32,
+  },
+  modalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(212, 163, 115, 0.05)',
+  },
+  modalItemIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  modalItemInfo: {
+    flex: 1,
+  },
+  modalItemLabel: {
+    color: IVORY,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalItemDesc: {
+    color: IVORY,
+    fontSize: 10,
+    opacity: 0.35,
+    marginTop: 2,
   },
 });

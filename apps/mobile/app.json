@@ -3,6 +3,7 @@
     "name": "KitchenLog",
     "slug": "kitchenlog",
     "version": "1.0.0",
+    "scheme": "kitchenlog",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "automatic",
@@ -10,14 +11,26 @@
       "package": "com.leonokendo.kitchenlog",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0F1A15"
       }
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0F1A15"
+        }
+      ],
       "./plugins/withAndroidCpp20",
       [
         "expo-build-properties",
@@ -27,7 +40,9 @@
             "cppFlags": "-std=c++20"
           }
         }
-      ]
+      ],
+      "expo-sqlite",
+      "expo-font"
     ],
     "extra": {
       "router": {},

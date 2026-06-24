@@ -20,7 +20,7 @@ const SETTINGS: SettingItem[] = [
   { icon: Bell, label: 'Notifications', description: 'Configure alerts' },
   { icon: Database, label: 'Backup Data', description: 'Export or restore data' },
   { icon: FileText, label: 'Export Reports', description: 'Generate reports' },
-  { icon: Info, label: 'About PrepFlow', description: 'Learn more about the app' },
+  { icon: Info, label: 'About KitchenLog', description: 'Learn more about the app' },
 ];
 
 function SettingRow({ icon: Icon, label, description, onPress }: SettingItem & { onPress: () => void }) {
@@ -70,7 +70,7 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <Text style={styles.footerText}>PrepFlow MVP v1.0</Text>
+        <Text style={styles.footerText}>KitchenLog MVP v1.0</Text>
       </ScrollView>
     </View>
   );

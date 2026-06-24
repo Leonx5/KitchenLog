@@ -31,3 +31,9 @@ declare module 'lodash' {
 }
 
 declare module '*.css' {}
+
+declare var global: any;
+declare var module: { exports: Record<string, unknown> };
+declare namespace NodeJS {
+  type Timeout = ReturnType<typeof setTimeout>;
+}

@@ -2,11 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import {
-  ArrowLeft, Monitor, Wifi, TrendingUp, DollarSign,
-  Smartphone, Printer, CheckCircle, AlertTriangle,
-  Activity, Zap, Clock, ChevronRight
-} from 'lucide-react-native';
+import { ArrowLeft, Wifi, CheckCircle, Activity, Zap, ChevronRight, Monitor, Smartphone, Globe, DollarSign, TrendingUp, ShoppingCart, BarChart3, RefreshCw, Calendar, Package, FileText } from 'lucide-react-native';
 import { Colors } from '@/theme/colors';
 import { Typography } from '@/theme/typography';
 
@@ -15,31 +11,23 @@ const IVORY = '#FDFCFB';
 const DARK_OLIVE = '#1C2620';
 const SOFT_SAND = 'rgba(212, 163, 115, 0.9)';
 
-const MOCK_SALES = [
-  { id: 1, item: 'Grilled Chicken Plate', amount: 1850, time: '2m ago', terminal: 'Front #1' },
-  { id: 2, item: 'Beef Stew + Rice', amount: 2200, time: '5m ago', terminal: 'Bar #2' },
-  { id: 3, item: 'Vegetable Curry', amount: 1200, time: '8m ago', terminal: 'Front #1' },
-  { id: 4, item: 'Grilled Tilapia', amount: 1600, time: '12m ago', terminal: 'KDS #3' },
-  { id: 5, item: 'Chicken Wrap x2', amount: 1800, time: '18m ago', terminal: 'Bar #2' },
-  { id: 6, item: 'Spaghetti Bolognese', amount: 1500, time: '25m ago', terminal: 'Front #1' },
-  { id: 7, item: 'Beef Burger + Fries', amount: 1400, time: '30m ago', terminal: 'KDS #3' },
-  { id: 8, item: 'Breakfast Omelette', amount: 900, time: '45m ago', terminal: 'Bar #2' },
+type PosProvider = {
+  id: string;
+  name: string;
+  icon: any;
+  description: string;
+  color: string;
+};
+
+const POS_PROVIDERS: PosProvider[] = [
+  { id: 'toast', name: 'Toast POS', icon: Monitor, description: 'Cloud-based restaurant POS', color: '#4ADE80' },
+  { id: 'oracle', name: 'Oracle Micros', icon: Monitor, description: 'Enterprise hospitality suite', color: '#E9C46A' },
+  { id: 'square', name: 'Square', icon: Smartphone, description: 'Integrated payments & POS', color: '#4ADE80' },
+  { id: 'lightspeed', name: 'Lightspeed', icon: Globe, description: 'All-in-one commerce platform', color: Colors.accent },
+  { id: 'custom', name: 'Custom POS', icon: Wifi, description: 'Connect via open API', color: '#FF8C00' },
 ];
 
-const MOCK_TERMINALS = [
-  { id: 1, name: 'Front Register #1', type: 'Register', status: 'online', ip: '192.168.1.101' },
-  { id: 2, name: 'Bar Terminal #2', type: 'Register', status: 'online', ip: '192.168.1.102' },
-  { id: 3, name: 'Kitchen Display #3', type: 'KDS', status: 'online', ip: '192.168.1.103' },
-  { id: 4, name: 'Back Office #4', type: 'Workstation', status: 'offline', ip: '192.168.1.104' },
-  { id: 5, name: 'Receipt Printer #1', type: 'Printer', status: 'online', ip: '192.168.1.201' },
-];
-
-const NETWORK_METRICS = [
-  { label: 'Uptime', value: '99.8%', trend: 'stable' },
-  { label: 'Latency', value: '12ms', trend: 'good' },
-  { label: 'Devices Online', value: '4/5', trend: 'warning' },
-  { label: 'Today\'s Sales', value: 'KSh 12,450', trend: 'up' },
-];
+const STEPS = ['Connecting...', 'Syncing menu items...', 'Syncing inventory...', 'Ready'];
 
 function PulseDot({ color }: { color: string }) {
   const scale = useRef(new Animated.Value(1)).current;
@@ -65,89 +53,21 @@ function PulseDot({ color }: { color: string }) {
   );
 }
 
-function SectionHeader({ title, icon: Icon, tint }: { title: string; icon: any; tint?: string }) {
-  return (
-    <View style={s.sectionHeaderRow}>
-      <View style={s.sectionDot} />
-      <Icon size={12} color={tint ?? Colors.accent} style={{ marginRight: 8 }} />
-      <Text style={s.sectionLabel}>{title.toUpperCase()}</Text>
-    </View>
-  );
-}
+type MetricCardProps = {
+  icon: any;
+  label: string;
+  value: string;
+  accent: string;
+};
 
-function TerminalCard({ terminal }: { terminal: typeof MOCK_TERMINALS[0] }) {
-  const isOnline = terminal.status === 'online';
-  const iconMap: Record<string, any> = {
-    Register: Monitor, KDS: Smartphone, Workstation: Monitor, Printer: Printer,
-  };
-  const Icon = iconMap[terminal.type] ?? Monitor;
-
+function MetricCard({ icon: Icon, label, value, accent }: MetricCardProps) {
   return (
-    <View style={s.terminalCard}>
-      <View style={s.terminalIconWrap}>
-        <Icon size={16} color={isOnline ? '#4ADE80' : '#6B7280'} />
+    <View style={s.metricCard}>
+      <View style={[s.metricIconWrap, { backgroundColor: `${accent}15` }]}>
+        <Icon size={16} color={accent} />
       </View>
-      <View style={s.terminalInfo}>
-        <View style={s.terminalNameRow}>
-          <Text style={s.terminalName}>{terminal.name}</Text>
-          {isOnline ? <PulseDot color="#4ADE80" /> : <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#6B7280' }} />}
-        </View>
-        <Text style={s.terminalMeta}>{terminal.type} · {terminal.ip}</Text>
-      </View>
-      <Text style={[s.terminalStatus, { color: isOnline ? '#4ADE80' : '#6B7280' }]}>
-        {isOnline ? 'Online' : 'Offline'}
-      </Text>
-    </View>
-  );
-}
-
-function SaleRow({ sale }: { sale: typeof MOCK_SALES[0] }) {
-  return (
-    <View style={s.saleRow}>
-      <View style={s.saleIcon}>
-        <DollarSign size={12} color={Colors.accent} />
-      </View>
-      <View style={s.saleInfo}>
-        <View style={s.saleNameRow}>
-          <Text style={s.saleItemName}>{sale.item}</Text>
-          <Text style={s.saleAmount}>KSh {sale.amount.toLocaleString()}</Text>
-        </View>
-        <Text style={s.saleMeta}>{sale.terminal} · {sale.time}</Text>
-      </View>
-    </View>
-  );
-}
-
-function MetricTile({ metric }: { metric: typeof NETWORK_METRICS[0] }) {
-  const accentColor =
-    metric.trend === 'up' ? '#4ADE80' :
-    metric.trend === 'warning' ? Colors.accent :
-    metric.trend === 'good' ? '#4ADE80' : IVORY;
-
-  return (
-    <View style={s.metricTile}>
-      <Text style={[s.metricValue, { color: accentColor }]}>{metric.value}</Text>
-      <Text style={s.metricLabel}>{metric.label}</Text>
-    </View>
-  );
-}
-
-function LiveSalesBadge() {
-  const pulse = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 0.3, duration: 1200, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 1, duration: 1200, useNativeDriver: true }),
-      ])
-    ).start();
-  }, []);
-
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-      <Animated.View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#4ADE80', opacity: pulse }} />
-      <Text style={{ color: '#4ADE80', fontSize: 9, fontWeight: '700', letterSpacing: 0.5 }}>LIVE</Text>
+      <Text style={[s.metricValue, { color: accent }]}>{value}</Text>
+      <Text style={s.metricLabel}>{label}</Text>
     </View>
   );
 }
@@ -155,8 +75,23 @@ function LiveSalesBadge() {
 export default function POSConnectScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [stepIndex, setStepIndex] = useState(-1);
 
-  const totalSales = MOCK_SALES.reduce((sum, s) => sum + s.amount, 0);
+  useEffect(() => {
+    if (selectedProvider && stepIndex >= 0 && stepIndex < STEPS.length - 1) {
+      const timer = setTimeout(() => setStepIndex(stepIndex + 1), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedProvider, stepIndex]);
+
+  const handleConnect = (id: string) => {
+    setSelectedProvider(id);
+    setStepIndex(0);
+  };
+
+  const selected = POS_PROVIDERS.find(p => p.id === selectedProvider);
+  const isComplete = stepIndex === STEPS.length - 1;
 
   return (
     <View style={[s.container, { paddingTop: insets.top }]}>
@@ -165,8 +100,8 @@ export default function POSConnectScreen() {
           <ArrowLeft size={20} color={Colors.accent} />
         </TouchableOpacity>
         <View style={s.headerTitles}>
-          <Text style={s.headerTitle}>POS Connect</Text>
-          <Text style={s.headerSub}>Point of Sale Integration</Text>
+          <Text style={s.headerTitle}>POS Control Center</Text>
+          <Text style={s.headerSub}>Point of Sale Integration & Operations</Text>
         </View>
       </View>
 
@@ -175,49 +110,170 @@ export default function POSConnectScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Network Health Section */}
+        {/* POS Provider Selection */}
         <View style={s.section}>
-          <SectionHeader title="Network Health" icon={Activity} />
-          <View style={s.metricsGrid}>
-            {NETWORK_METRICS.map((m, i) => (
-              <MetricTile key={i} metric={m} />
-            ))}
+          <View style={s.sectionHeaderRow}>
+            <View style={s.sectionDot} />
+            <Activity size={12} color={Colors.accent} style={{ marginRight: 8 }} />
+            <Text style={s.sectionLabel}>CONNECTED PROVIDER</Text>
+          </View>
+          <View style={s.providerList}>
+            {POS_PROVIDERS.map((provider) => {
+              const isSelected = selectedProvider === provider.id;
+              return (
+                <TouchableOpacity
+                  key={provider.id}
+                  style={[s.providerCard, isSelected && s.providerCardSelected]}
+                  onPress={() => handleConnect(provider.id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[s.providerIconWrap, { backgroundColor: `${provider.color}15` }]}>
+                    <provider.icon size={18} color={provider.color} />
+                  </View>
+                  <View style={s.providerInfo}>
+                    <Text style={s.providerName}>{provider.name}</Text>
+                    <Text style={s.providerDesc}>{provider.description}</Text>
+                  </View>
+                  {!isSelected && <ChevronRight size={14} color={IVORY} opacity={0.2} />}
+                  {isSelected && isComplete && <CheckCircle size={16} color="#4ADE80" />}
+                  {isSelected && !isComplete && <PulseDot color={Colors.accent} />}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
-        {/* Connected Devices Section */}
-        <View style={s.section}>
-          <SectionHeader title="Connected Devices" icon={Monitor} />
-          <View style={s.terminalList}>
-            {MOCK_TERMINALS.map((t) => (
-              <TerminalCard key={t.id} terminal={t} />
-            ))}
-          </View>
-          <View style={s.statusBar}>
-            <CheckCircle size={14} color="#4ADE80" />
-            <Text style={s.statusBarText}>4 of 5 devices online</Text>
-          </View>
-        </View>
-
-        {/* Live Sales Feed Section */}
-        <View style={s.section}>
-          <View style={[s.sectionHeaderRow, { justifyContent: 'space-between' }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        {/* Integration Workflow */}
+        {selectedProvider && (
+          <View style={s.section}>
+            <View style={s.sectionHeaderRow}>
               <View style={s.sectionDot} />
-              <TrendingUp size={12} color={Colors.accent} style={{ marginRight: 8 }} />
-              <Text style={s.sectionLabel}>SALES FEED</Text>
+              <Zap size={12} color={Colors.accent} style={{ marginRight: 8 }} />
+              <Text style={s.sectionLabel}>INTEGRATION STATUS</Text>
             </View>
-            <LiveSalesBadge />
+            <View style={s.workflowCard}>
+              <View style={s.workflowHeader}>
+                <Text style={s.workflowTitle}>{selected!.name}</Text>
+                {isComplete && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <CheckCircle size={12} color="#4ADE80" />
+                    <Text style={{ color: '#4ADE80', fontSize: 10, fontWeight: '700' }}>CONNECTED</Text>
+                  </View>
+                )}
+                {!isComplete && <PulseDot color={Colors.accent} />}
+              </View>
+              <View style={s.stepsList}>
+                {STEPS.map((step, i) => {
+                  const isActive = i === stepIndex;
+                  const isDone = i < stepIndex;
+                  return (
+                    <View key={i} style={s.stepRow}>
+                      <View style={s.stepIndicator}>
+                        {isDone ? (
+                          <CheckCircle size={14} color="#4ADE80" />
+                        ) : isActive ? (
+                          <Activity size={14} color={Colors.accent} />
+                        ) : (
+                          <View style={s.stepDot} />
+                        )}
+                      </View>
+                      <Text style={[s.stepText, (isActive || isDone) && s.stepTextActive]}>
+                        {step}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
           </View>
-          <View style={s.salesSummary}>
-            <Text style={s.salesSummaryLabel}>Today's Revenue</Text>
-            <Text style={s.salesSummaryValue}>KSh {totalSales.toLocaleString()}</Text>
-            <Text style={s.salesSummarySub}>{MOCK_SALES.length} transactions</Text>
+        )}
+
+        {/* Business Metrics Overview */}
+        <View style={s.section}>
+          <View style={s.sectionHeaderRow}>
+            <View style={s.sectionDot} />
+            <BarChart3 size={12} color={Colors.accent} style={{ marginRight: 8 }} />
+            <Text style={s.sectionLabel}>BUSINESS OVERVIEW</Text>
           </View>
-          <View style={s.salesList}>
-            {MOCK_SALES.map((sale) => (
-              <SaleRow key={sale.id} sale={sale} />
-            ))}
+          <View style={s.metricsGrid}>
+            <MetricCard icon={ShoppingCart} label="Goods Sold" value="1,247" accent="#4ADE80" />
+            <MetricCard icon={DollarSign} label="Total Sales" value="KSh 342K" accent={Colors.accent} />
+            <MetricCard icon={RefreshCw} label="Transactions" value="843" accent="#E9C46A" />
+            <MetricCard icon={TrendingUp} label="Revenue" value="KSh 89K" accent="#FF8C00" />
+          </View>
+        </View>
+
+        {/* Operational Tools */}
+        <View style={s.section}>
+          <View style={s.sectionHeaderRow}>
+            <View style={s.sectionDot} />
+            <Zap size={12} color={Colors.accent} style={{ marginRight: 8 }} />
+            <Text style={s.sectionLabel}>OPERATIONAL TOOLS</Text>
+          </View>
+          <View style={s.toolsGrid}>
+            <TouchableOpacity style={s.toolCard} activeOpacity={0.7}>
+              <View style={[s.toolIconWrap, { backgroundColor: 'rgba(74, 222, 128, 0.1)' }]}>
+                <RefreshCw size={16} color="#4ADE80" />
+              </View>
+              <View style={s.toolInfo}>
+                <Text style={s.toolName}>Sync Inventory</Text>
+                <Text style={s.toolDesc}>Push stock levels to POS</Text>
+              </View>
+              <ChevronRight size={14} color={IVORY} opacity={0.2} />
+            </TouchableOpacity>
+            <TouchableOpacity style={s.toolCard} activeOpacity={0.7}>
+              <View style={[s.toolIconWrap, { backgroundColor: 'rgba(212, 163, 115, 0.1)' }]}>
+                <FileText size={16} color={Colors.accent} />
+              </View>
+              <View style={s.toolInfo}>
+                <Text style={s.toolName}>Sales Reports</Text>
+                <Text style={s.toolDesc}>Daily and period summaries</Text>
+              </View>
+              <ChevronRight size={14} color={IVORY} opacity={0.2} />
+            </TouchableOpacity>
+            <TouchableOpacity style={s.toolCard} activeOpacity={0.7}>
+              <View style={[s.toolIconWrap, { backgroundColor: 'rgba(233, 196, 74, 0.1)' }]}>
+                <Package size={16} color="#E9C46A" />
+              </View>
+              <View style={s.toolInfo}>
+                <Text style={s.toolName}>Menu Sync</Text>
+                <Text style={s.toolDesc}>Push menu items and pricing</Text>
+              </View>
+              <ChevronRight size={14} color={IVORY} opacity={0.2} />
+            </TouchableOpacity>
+            <TouchableOpacity style={s.toolCard} activeOpacity={0.7}>
+              <View style={[s.toolIconWrap, { backgroundColor: 'rgba(255, 107, 107, 0.1)' }]}>
+                <Calendar size={16} color="#FF6B6B" />
+              </View>
+              <View style={s.toolInfo}>
+                <Text style={s.toolName}>Transaction Log</Text>
+                <Text style={s.toolDesc}>View daily transaction history</Text>
+              </View>
+              <ChevronRight size={14} color={IVORY} opacity={0.2} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Quick Actions */}
+        <View style={s.section}>
+          <View style={s.sectionHeaderRow}>
+            <View style={s.sectionDot} />
+            <Zap size={12} color={Colors.accent} style={{ marginRight: 8 }} />
+            <Text style={s.sectionLabel}>QUICK ACTIONS</Text>
+          </View>
+          <View style={s.quickActionsRow}>
+            <TouchableOpacity style={s.quickAction} activeOpacity={0.7}>
+              <RefreshCw size={16} color={Colors.accent} />
+              <Text style={s.quickActionText}>Full Sync</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.quickAction} activeOpacity={0.7}>
+              <FileText size={16} color={Colors.accent} />
+              <Text style={s.quickActionText}>Export Data</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.quickAction} activeOpacity={0.7}>
+              <Activity size={16} color={Colors.accent} />
+              <Text style={s.quickActionText}>Diagnostics</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -289,163 +345,178 @@ const s = StyleSheet.create({
     letterSpacing: 1.5,
     opacity: 0.8,
   },
+  providerList: {
+    gap: 10,
+  },
+  providerCard: {
+    backgroundColor: DARK_OLIVE,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 163, 115, 0.08)',
+  },
+  providerCardSelected: {
+    borderColor: 'rgba(212, 163, 115, 0.3)',
+    backgroundColor: '#232E28',
+  },
+  providerIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  providerInfo: {
+    flex: 1,
+  },
+  providerName: {
+    color: IVORY,
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  providerDesc: {
+    color: IVORY,
+    fontSize: 11,
+    opacity: 0.35,
+    marginTop: 2,
+  },
+  workflowCard: {
+    backgroundColor: DARK_OLIVE,
+    borderRadius: 12,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 163, 115, 0.08)',
+  },
+  workflowHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  workflowTitle: {
+    color: IVORY,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  stepsList: {
+    gap: 12,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  stepIndicator: {
+    width: 20,
+    alignItems: 'center',
+  },
+  stepDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: IVORY,
+    opacity: 0.15,
+  },
+  stepText: {
+    color: IVORY,
+    fontSize: 13,
+    opacity: 0.3,
+    fontWeight: '500',
+  },
+  stepTextActive: {
+    opacity: 1,
+    color: Colors.accent,
+    fontWeight: '600',
+  },
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
   },
-  metricTile: {
+  metricCard: {
+    width: '48%',
     backgroundColor: DARK_OLIVE,
     borderRadius: 12,
     padding: 16,
-    width: '48%',
     borderWidth: 1,
     borderColor: 'rgba(212, 163, 115, 0.08)',
   },
+  metricIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   metricValue: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   metricLabel: {
-    color: IVORY,
     fontSize: 10,
+    color: IVORY,
     opacity: 0.4,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
-  terminalList: {
-    gap: 8,
+  toolsGrid: {
+    gap: 10,
   },
-  terminalCard: {
+  toolCard: {
     backgroundColor: DARK_OLIVE,
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(212, 163, 115, 0.08)',
   },
-  terminalIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 8,
-    backgroundColor: 'rgba(212, 163, 115, 0.08)',
+  toolIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  terminalInfo: {
+  toolInfo: {
     flex: 1,
   },
-  terminalNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  terminalName: {
+  toolName: {
     color: IVORY,
     fontSize: 14,
     fontWeight: '600',
   },
-  terminalMeta: {
+  toolDesc: {
     color: IVORY,
     fontSize: 10,
     opacity: 0.35,
-    marginTop: 2,
+    marginTop: 1,
   },
-  terminalStatus: {
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  statusBar: {
+  quickActionsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    backgroundColor: 'rgba(74, 222, 128, 0.06)',
-    borderRadius: 8,
+    gap: 10,
   },
-  statusBarText: {
-    color: '#4ADE80',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  salesSummary: {
+  quickAction: {
+    flex: 1,
     backgroundColor: DARK_OLIVE,
-    borderRadius: 12,
-    padding: 18,
-    marginBottom: 12,
+    borderRadius: 10,
+    padding: 14,
+    alignItems: 'center',
+    gap: 6,
     borderWidth: 1,
     borderColor: 'rgba(212, 163, 115, 0.08)',
   },
-  salesSummaryLabel: {
-    color: IVORY,
-    fontSize: 10,
-    opacity: 0.4,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  salesSummaryValue: {
-    color: IVORY,
-    fontSize: 28,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-  salesSummarySub: {
-    color: IVORY,
-    fontSize: 11,
-    opacity: 0.35,
-    marginTop: 2,
-  },
-  salesList: {
-    gap: 1,
-  },
-  saleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(212, 163, 115, 0.05)',
-  },
-  saleIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 6,
-    backgroundColor: 'rgba(212, 163, 115, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  saleInfo: {
-    flex: 1,
-  },
-  saleNameRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  saleItemName: {
-    color: IVORY,
-    fontSize: 13,
-    fontWeight: '500',
-    flex: 1,
-    marginRight: 8,
-  },
-  saleAmount: {
+  quickActionText: {
     color: Colors.accent,
-    fontSize: 13,
+    fontSize: 9,
     fontWeight: '700',
-  },
-  saleMeta: {
-    color: IVORY,
-    fontSize: 10,
-    opacity: 0.3,
-    marginTop: 2,
+    letterSpacing: 0.5,
   },
   demoBadge: {
     flexDirection: 'row',
